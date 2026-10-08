@@ -1,135 +1,99 @@
 #include "graph.hpp"
 
 #include <algorithm>
-#include <functional>
-#include <queue>
 #include <sstream>
 
-// Larger than any real route, small enough that adding two of them cannot overflow.
-const long long Graph::INF = 1000000000000000LL;
+using namespace std;
 
-int Graph::addNode(const std::string& name) {
-    auto it = index_.find(name);
-    if (it != index_.end()) return it->second;
-    int id = nodeCount();
-    names_.push_back(name);
-    index_[name] = id;
-    adj_.emplace_back();
-    return id;
+const int INF = 1000000000;  // "not reachable yet"
+
+int Graph::idOf(const string& name) {
+    if (ids.count(name) == 0) {  // first time we see this place: give it the next number
+        ids[name] = (int)names.size();
+        names.push_back(name);
+        adj.push_back({});
+    }
+    return ids[name];
 }
 
-void Graph::addEdge(const std::string& a, const std::string& b, int steps) {
-    int u = addNode(a);
-    int v = addNode(b);
-    // A corridor can be walked in both directions, so store the edge on both ends.
-    adj_[u].push_back({v, steps});
-    adj_[v].push_back({u, steps});
-    ++edgeCount_;
+bool Graph::hasPlace(const string& name) const {
+    return ids.count(name) > 0;
 }
 
-bool Graph::loadFromText(const std::string& text, std::string& error) {
-    std::istringstream in(text);
-    std::string line;
-    int lineNo = 0;
-    while (std::getline(in, line)) {
-        ++lineNo;
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-        size_t first = line.find_first_not_of(" \t");
-        if (first == std::string::npos || line[first] == '#') continue;
+void Graph::addEdge(const string& a, const string& b, int steps) {
+    int u = idOf(a);
+    int v = idOf(b);
+    adj[u].push_back({v, steps});  // a -> b
+    adj[v].push_back({u, steps});  // b -> a (you can walk a corridor both ways)
+}
 
-        std::istringstream fields(line);
-        std::string a, b, extra;
-        long long steps;
-        if (!(fields >> a >> b >> steps) || (fields >> extra) || steps < 0 || steps > 1000000) {
-            std::ostringstream msg;
-            msg << "line " << lineNo << ": expected \"placeA placeB steps\", got \"" << line << "\"";
-            error = msg.str();
+bool Graph::loadFromText(const string& text, string& error) {
+    istringstream input(text);
+    string line;
+    int lineNumber = 0;
+    while (getline(input, line)) {
+        lineNumber++;
+        if (!line.empty() && line.back() == '\r') line.pop_back();  // Windows line endings
+
+        istringstream words(line);
+        string a, b, extra;
+        int steps;
+        if (!(words >> a) || a[0] == '#') continue;  // blank line or comment
+        if (!(words >> b >> steps) || (words >> extra) || steps < 0) {
+            error = "line " + to_string(lineNumber) + ": expected \"placeA placeB steps\", got \"" + line + "\"";
             return false;
         }
-        addEdge(a, b, static_cast<int>(steps));
+        addEdge(a, b, steps);
     }
     return true;
 }
 
-int Graph::indexOf(const std::string& name) const {
-    auto it = index_.find(name);
-    return it == index_.end() ? -1 : it->second;
-}
-
-int Graph::edgeSteps(const std::string& a, const std::string& b) const {
-    int u = indexOf(a), v = indexOf(b);
-    if (u < 0 || v < 0) return -1;
-    int best = -1;
-    for (const auto& edge : adj_[u])
-        if (edge.first == v && (best < 0 || edge.second < best)) best = edge.second;
-    return best;
-}
-
-Route Graph::shortestPath(const std::string& from, const std::string& to) const {
+Route Graph::shortestPath(const string& from, const string& to) const {
     Route route;
-    int source = indexOf(from);
-    int target = indexOf(to);
-    if (source < 0 || target < 0) return route;
+    if (!hasPlace(from) || !hasPlace(to)) return route;
 
-    const int n = nodeCount();
-    std::vector<long long> dist(n, INF);  // best known steps from the source
-    std::vector<int> prev(n, -1);         // previous place on that best route
+    int start = ids.at(from);
+    int end = ids.at(to);
+    int n = placeCount();
 
-    // Min-heap of (steps so far, node): the closest unsettled node is always on top.
-    typedef std::pair<long long, int> Item;
-    std::priority_queue<Item, std::vector<Item>, std::greater<Item>> heap;
+    vector<int> dist(n, INF);     // dist[p] = fewest steps found so far from start to p
+    vector<int> prev(n, -1);      // prev[p] = the place just before p on that route
+    vector<bool> done(n, false);  // done[p] = true once dist[p] can't get any smaller
+    dist[start] = 0;
 
-    dist[source] = 0;
-    heap.push({0, source});
-    while (!heap.empty()) {
-        Item top = heap.top();
-        heap.pop();
-        long long d = top.first;
-        int u = top.second;
+    for (int round = 0; round < n; round++) {
+        // 1. Pick the closest place that isn't done yet.
+        int u = -1;
+        for (int p = 0; p < n; p++)
+            if (!done[p] && (u == -1 || dist[p] < dist[u])) u = p;
 
-        if (d > dist[u]) continue;  // stale entry: u was already reached by a shorter route
-        if (u == target) break;     // the target is settled, so its distance is final
+        if (dist[u] == INF) break;  // every place left is unreachable
 
-        for (const auto& edge : adj_[u]) {
-            int v = edge.first;
-            long long candidate = d + edge.second;
-            if (candidate < dist[v]) {  // relaxation: going through u is shorter
-                dist[v] = candidate;
-                prev[v] = u;
-                heap.push({candidate, v});
+        // 2. Nothing can reach u more cheaply now, so its distance is final.
+        done[u] = true;
+        if (u == end) break;  // we only need the route to `end`
+
+        // 3. Relax: would walking through u give a neighbour a shorter route?
+        for (const Edge& e : adj[u]) {
+            if (!done[e.to] && dist[u] + e.steps < dist[e.to]) {
+                dist[e.to] = dist[u] + e.steps;
+                prev[e.to] = u;
             }
         }
     }
-    if (dist[target] == INF) return route;  // no route (e.g. different floors, no stairs yet)
 
-    // Walk the prev[] links back from the target, then reverse to get start -> end.
-    std::vector<int> nodes;
-    for (int v = target; v != -1; v = prev[v]) nodes.push_back(v);
-    std::reverse(nodes.begin(), nodes.end());
+    if (dist[end] == INF) return route;  // no route (not found)
+
+    // 4. Follow prev[] back from the end to the start, then flip it round.
+    vector<int> order;
+    for (int p = end; p != -1; p = prev[p]) order.push_back(p);
+    reverse(order.begin(), order.end());
 
     route.found = true;
-    route.steps = dist[target];
-    for (size_t i = 0; i < nodes.size(); ++i) {
-        route.path.push_back(names_[nodes[i]]);
-        if (i > 0) route.legs.push_back(edgeSteps(names_[nodes[i - 1]], names_[nodes[i]]));
+    route.totalSteps = dist[end];
+    for (int i = 0; i < (int)order.size(); i++) {
+        route.path.push_back(names[order[i]]);
+        if (i > 0) route.legs.push_back(dist[order[i]] - dist[order[i - 1]]);
     }
     return route;
-}
-
-std::vector<std::vector<long long>> Graph::allPairsDistances() const {
-    const int n = nodeCount();
-    std::vector<std::vector<long long>> d(n, std::vector<long long>(n, INF));
-    for (int u = 0; u < n; ++u) {
-        d[u][u] = 0;
-        for (const auto& edge : adj_[u])
-            d[u][edge.first] = std::min(d[u][edge.first], static_cast<long long>(edge.second));
-    }
-    // Allow node k as a stop-over on every i -> j route, for k = 0..n-1.
-    for (int k = 0; k < n; ++k)
-        for (int i = 0; i < n; ++i) {
-            if (d[i][k] == INF) continue;
-            for (int j = 0; j < n; ++j)
-                if (d[k][j] != INF && d[i][k] + d[k][j] < d[i][j]) d[i][j] = d[i][k] + d[k][j];
-        }
-    return d;
 }

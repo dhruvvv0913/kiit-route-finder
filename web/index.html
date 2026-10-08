@@ -14,7 +14,7 @@
 <div class="wrap">
   <header class="top">
     <p class="eyebrow">School of Computer Engineering · Block A &amp; B</p>
-    <h1>Route finder</h1>
+    <h1>Route finder <span class="demo" id="demo-badge" hidden title="Step counts are estimated from the floor plan until they're measured">Demo</span></h1>
     <p class="lede">Enter two rooms, like A006 and B012, to get the shortest walk between them in steps. The route comes from Dijkstra's algorithm, written in C++ and running in your browser as WebAssembly.</p>
   </header>
 
@@ -38,6 +38,7 @@
       <div id="result" class="result" hidden>
         <p class="summary"><span id="total" class="total"></span><span class="unit">steps</span></p>
         <p id="summary-places" class="summary-places"></p>
+        <p id="floors-note" class="floors-note" hidden></p>
         <ol id="directions" class="directions"></ol>
       </div>
     </section>

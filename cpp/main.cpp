@@ -8,15 +8,15 @@
 #include <sstream>
 
 static void printRoute(const Graph& graph, const std::string& from, const std::string& to) {
-    if (!graph.hasNode(from)) { std::cout << "Unknown place: " << from << "\n"; return; }
-    if (!graph.hasNode(to)) { std::cout << "Unknown place: " << to << "\n"; return; }
+    if (!graph.hasPlace(from)) { std::cout << "Unknown place: " << from << "\n"; return; }
+    if (!graph.hasPlace(to)) { std::cout << "Unknown place: " << to << "\n"; return; }
 
     Route route = graph.shortestPath(from, to);
     if (!route.found) {
         std::cout << "No route from " << from << " to " << to << "\n";
         return;
     }
-    std::cout << from << " -> " << to << ": " << route.steps << " steps\n  " << route.path[0];
+    std::cout << from << " -> " << to << ": " << route.totalSteps << " steps\n  " << route.path[0];
     for (size_t i = 1; i < route.path.size(); ++i)
         std::cout << " -(" << route.legs[i - 1] << ")-> " << route.path[i];
     std::cout << "\n";
@@ -46,8 +46,8 @@ int main(int argc, char** argv) {
         printRoute(graph, argv[2], argv[3]);
         return 0;
     }
-    std::cout << "Loaded " << graph.nodeCount() << " places and " << graph.edgeCount()
-              << " links. Type FROM TO (e.g. A006 B012), Ctrl+Z then Enter to quit.\n";
+    std::cout << "Loaded " << graph.placeCount()
+              << " places. Type FROM TO (e.g. A006 B012), Ctrl+Z then Enter to quit.\n";
     std::string from, to;
     while (std::cin >> from >> to) printRoute(graph, from, to);
     return 0;

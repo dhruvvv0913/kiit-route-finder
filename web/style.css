@@ -25,6 +25,8 @@ button, input { font: inherit; color: inherit; }
 .eyebrow { margin: 0 0 4px; font: 500 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
 h1 { margin: 0; font: 700 clamp(2.2rem, 5vw, 3.2rem)/1 var(--f-display); letter-spacing: .01em; }
 .lede { margin: 8px 0 0; max-width: 64ch; color: var(--ink-2); }
+.demo { display: inline-block; vertical-align: middle; margin-left: 10px; padding: 3px 9px; border: 1.5px solid var(--end); border-radius: 3px; color: var(--end); font: 600 14px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; cursor: help; }
+.floors-note { margin: 4px 0 0; padding: 8px 10px; background: var(--route-soft); border-radius: 3px; font-size: 14px; }
 h2 { margin: 0; font: 600 19px var(--f-display); letter-spacing: .03em; }
 
 .layout { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 1.9fr); gap: 20px; align-items: start; }

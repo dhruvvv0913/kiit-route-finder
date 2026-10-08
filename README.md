@@ -9,7 +9,9 @@ The building is an undirected weighted graph:
 - **Edges** are the walkable corridor pieces between them.
 - **Each weight** is the number of walking steps for that piece.
 
-The shortest route comes from **Dijkstra's algorithm** with a binary min-heap (`std::priority_queue`), in O((V + E) log V). The code is in [`cpp/graph.cpp`](cpp/graph.cpp). The tests check it against **Floyd–Warshall** (O(V³)) for every pair of places in the building.
+The shortest route comes from **Dijkstra's algorithm** in its simple array form. Each round picks the closest place that isn't finished yet, marks it finished, and updates its neighbours. That's O(V²), which is instant for the ~300 places in the building. The code is in [`cpp/graph.cpp`](cpp/graph.cpp). The tests check it against **Floyd–Warshall** (O(V³)) for every pair of places in the building.
+
+Floors are joined by the staircases, each estimated at about 25 steps per floor.
 
 The same C++ runs in two places:
 - natively, through the tests and a terminal program
@@ -32,8 +34,8 @@ npm run serve                          # open http://localhost:8080
 | Path | Contents |
 |---|---|
 | `data/floor-graph.json` | The floor plan as a graph. All three floors share this layout. |
-| `cpp/` | `graph.hpp/.cpp` (graph, Dijkstra, Floyd–Warshall), `main.cpp` (terminal program), `wasm_api.cpp` (browser interface), `tests.cpp` |
+| `cpp/` | `graph.hpp/.cpp` (graph + Dijkstra), `main.cpp` (terminal program), `wasm_api.cpp` (browser interface), `tests.cpp` (includes Floyd–Warshall) |
 | `scripts/build.mjs` | Expands the plan to 3 floors (`web/graph.txt`), compiles, runs the tests |
 | `web/` | The website Vercel serves, including the generated graph and the compiled `router.wasm` |
 
-Most step counts are still estimates from the floor plan. The data note at the bottom of the site shows how many corridor segments have been measured.
+The site is in **demo mode** until the building is measured: step counts are estimates from the floor plan. The measuring plan (nine corridor walks plus short counts) is in `data/walks.json`.

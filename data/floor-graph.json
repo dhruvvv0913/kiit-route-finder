@@ -13,7 +13,8 @@
     "corridorCrossSteps": null,
     "corridorCrossEst": 4,
     "roomHop": "a room connects to its door point with half the corridor crossing (corridorCrossSteps, else corridorCrossEst)",
-    "stairs": "stair nodes with flightSteps set are linked to the same stair on the floor above; null = not linked yet"
+    "stairs": "each stair node is linked to the same stair on the floor above, costing flightSteps (counted) or stairFlightEst (the user's estimate: every staircase is identical, ~25 steps per floor)",
+    "stairFlightEst": 25
   },
   "nodes": [
     { "id": "J1", "kind": "junction", "x": 266, "y": 229, "label": "A top-left corner" },

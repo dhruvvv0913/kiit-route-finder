@@ -6,7 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DAA (Design & Analysis of Algorithms) assignment: a website that takes two rooms in Block A & B of KIIT School of Computer Engineering and returns the shortest walking route between them. Distance is measured in **walking steps**. The site is deployed on Vercel.
 
-The students present and explain **only the C++ algorithm code** (`cpp/graph.*`). The website code is just glue, so keep the C++ readable and well commented, written for someone explaining it in a viva.
+The students present and explain **only the C++ algorithm code** (`cpp/graph.*`). The website code is just glue.
+
+The user asked for Dijkstra to stay **simple and easy to explain**, so keep it that way:
+- the O(V²) array version (`dist` / `prev` / `done`, pick the closest unfinished place, relax its neighbours)
+- no heap, no clever C++
+
+Don't "optimise" it back to `priority_queue`, and keep the comments written for someone explaining the code in a viva.
+
+The site is in **demo mode**: it shows a DEMO badge while any step count is still an estimate.
 
 ## Commands
 
@@ -40,12 +48,10 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - Rooms get their real numbers.
   - Every other place is `<id>@<floor>` (`J3@0`, `D2@2`, `T1@1`).
   - Each room links to its door point with half a corridor crossing (`meta.corridorCrossSteps ?? corridorCrossEst`).
-  - Stairs whose `flightSteps` is set are linked `S1@0–S1@1–S1@2`. Until then, floors are disconnected and cross-floor queries return "not found".
+  - Every stair is linked `S1@0–S1@1–S1@2` with `flightSteps ?? meta.stairFlightEst`. The user says every staircase is identical, about 25 steps per floor.
   - **This generator is the only place that knows about floors.** The C++ only sees a generic named, weighted, undirected edge list (`placeA placeB steps` per line), and must stay that way.
-- **`cpp/graph.cpp`:**
-  - adjacency list
-  - Dijkstra with `std::priority_queue` min-heap and lazy deletion, returning `path` and per-hop `legs`
-  - Floyd–Warshall, used only by tests and the report
+- **`cpp/graph.cpp`** holds only the adjacency list (`map` name → index), the text loader, and the simple Dijkstra. `legs` come from `dist[node] - dist[prev]`.
+- **Floyd–Warshall lives only in `tests.cpp`**, which builds its own matrix from `graph.txt`.
 - **`cpp/wasm_api.cpp`** exposes the `extern "C"` functions `load_graph(text)` and `find_route(from, to)`; the latter returns a JSON string. It is plain C++, so `tests.cpp` links and tests it natively too.
 - **`web/app.js`:**
   - resolves typed text to place ids (room numbers, plus toilet/entry/stair labels per floor)
@@ -76,17 +82,15 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
 - **`x`/`y` and room `rect`** are traced from the ground-floor board photo. Use them for drawing and directions only, never as weights.
 - **Keep ids stable.** Edge ids `e01`–`e61` and node ids are used by the step-count collection page; add new ids rather than renumbering.
 
-## Step-count collection page
+## Collecting step counts
 
-The team enters counts at https://claude.ai/artifact/NLsfsBqswPCwjGXG5ArvRS.
-
-- Read them with the `ArtifactData` tool:
-  - `edges/<edgeId>`: `{steps, from, to, label, group}`
-  - `stairs/<S1..S7>`: `{connects, flight}`
-  - `settings/main`: `{cross, notes}`. `notes` holds the user's corrections to the map.
-- Copy confirmed values into `edges[].steps`, `nodes[].flightSteps` and `meta.corridorCrossSteps`.
-- The user prefers to be asked for counts as room-to-room walks ("from A006 to A009"). Turn those into per-segment values yourself.
-- `e22` = 47 was entered on 2026-10-07, but it is ~6–8× the estimate for two adjacent rooms. Confirm with the user before using it.
+- **Current plan:** the user collects counts with the walk guide at https://claude.ai/artifact/NycktEHqmF7ZwUsC2bJA9Q, built from `data/walks.json`, and pastes running counts into chat. For example: `W1 Block A, top corridor: A006=6, A007/A008=14, A009/A010=22, J2=27`.
+  - Several teammates may count, and each pasted block names its counter. Everyone also walks W1, so their step lengths can be matched: scale each person's counts by (reference W1 end count ÷ their W1 end count).
+  - Each walk starts at `start` with count 0. The edge between consecutive stops = count difference. Edges are matched by node pair (`walks.json` covers all 61 edges exactly once).
+  - The guide also returns the corridor crossing (`meta.corridorCrossSteps`), one staircase's steps (`flightSteps` for all stairs), and answers about toilet stairs, the lift, courtyards and room names.
+- Copy confirmed values into `edges[].steps`, `nodes[].flightSteps` and `meta.corridorCrossSteps`. Then run `npm run build:all`; the DEMO badge disappears once nothing is estimated.
+- **Superseded:** the old per-segment page, https://claude.ai/artifact/NLsfsBqswPCwjGXG5ArvRS, keeps its data in the `ArtifactData` collections `edges`, `stairs` and `settings/main`.
+  - It only holds `e22` = 47, entered on 2026-10-07. That's ~6–8× the estimate for two adjacent rooms; walk W5 re-measures it.
 
 ## Open questions
 
@@ -95,7 +99,7 @@ The team enters counts at https://claude.ai/artifact/NLsfsBqswPCwjGXG5ArvRS.
   - inner-corner stairs open toward the nearest corner junction
   - A011/A013 open onto A's right corridor; B011 opens onto the A–B link corridor
 
-  Check `settings/main.notes` for the user's corrections before relying on these.
+  Check the user's notes from the walk guide before relying on these.
 - **Unconfirmed:**
   - whether the corner toilet blocks contain stairs
   - whether the blue symbol near B011 is a lift

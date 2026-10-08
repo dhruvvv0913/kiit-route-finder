@@ -1,52 +1,44 @@
 #pragma once
 
+#include <map>
 #include <string>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
-// One walking route: the total steps, the places passed from start to end,
-// and the steps of each hop between consecutive places.
-struct Route {
-    bool found = false;
-    long long steps = 0;
-    std::vector<std::string> path;
-    std::vector<int> legs;  // legs[i] = steps from path[i] to path[i + 1]
+// A corridor link from one place to a neighbouring place.
+struct Edge {
+    int to;     // index of the neighbouring place
+    int steps;  // walking steps to get there
 };
 
-// The building as an undirected weighted graph, stored as an adjacency list.
-// Places are named ("A006", "J3@0"), and every edge weight is a number of walking steps.
+// The answer to "how do I get from A to B?".
+struct Route {
+    bool found = false;
+    int totalSteps = 0;
+    std::vector<std::string> path;  // places from start to end
+    std::vector<int> legs;          // legs[i] = steps from path[i] to path[i + 1]
+};
+
+// The building as a graph: places (rooms, corridor points, stairs...) joined by corridors.
 class Graph {
 public:
-    static const long long INF;
-
-    // Reads one edge per line: "placeA placeB steps".
-    // Blank lines and lines starting with '#' are skipped.
-    // Returns false and describes the problem in `error` if a line is malformed.
-    bool loadFromText(const std::string& text, std::string& error);
-
+    // Adds a corridor between two places. Corridors work in both directions.
     void addEdge(const std::string& a, const std::string& b, int steps);
 
-    bool hasNode(const std::string& name) const { return index_.count(name) > 0; }
-    int indexOf(const std::string& name) const;  // -1 if the place is unknown
-    int nodeCount() const { return static_cast<int>(names_.size()); }
-    int edgeCount() const { return edgeCount_; }
-    const std::vector<std::string>& names() const { return names_; }
+    // Reads one corridor per line: "placeA placeB steps". Lines starting with '#' are skipped.
+    // Returns false and fills `error` if a line is wrong.
+    bool loadFromText(const std::string& text, std::string& error);
 
-    // Steps of the shortest direct edge between a and b, or -1 if they are not adjacent.
-    int edgeSteps(const std::string& a, const std::string& b) const;
+    bool hasPlace(const std::string& name) const;
+    int placeCount() const { return (int)names.size(); }
+    const std::vector<std::string>& placeNames() const { return names; }
 
-    // Dijkstra's algorithm with a binary min-heap: O((V + E) log V).
+    // Dijkstra's algorithm: the route with the fewest total steps.
     Route shortestPath(const std::string& from, const std::string& to) const;
 
-    // Floyd-Warshall all-pairs distances: O(V^3). Used to cross-check Dijkstra.
-    std::vector<std::vector<long long>> allPairsDistances() const;
-
 private:
-    int addNode(const std::string& name);
+    int idOf(const std::string& name);  // the place's number, adding it if it's new
 
-    std::vector<std::string> names_;                     // node index -> place name
-    std::unordered_map<std::string, int> index_;         // place name -> node index
-    std::vector<std::vector<std::pair<int, int>>> adj_;  // node index -> (neighbour, steps)
-    int edgeCount_ = 0;
+    std::vector<std::string> names;      // place number -> name, e.g. 0 -> "A006"
+    std::map<std::string, int> ids;      // name -> place number, e.g. "A006" -> 0
+    std::vector<std::vector<Edge>> adj;  // adjacency list: adj[p] = corridors leaving place p
 };

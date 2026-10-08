@@ -31,13 +31,13 @@ const char* load_graph(const char* text) {
 // or {"found":false,"unknown":"X"} when a place isn't in the graph.
 const char* find_route(const char* from, const char* to) {
     std::ostringstream out;
-    if (!graph.hasNode(from) || !graph.hasNode(to)) {
+    if (!graph.hasPlace(from) || !graph.hasPlace(to)) {
         out << "{\"found\":false,\"unknown\":";
-        writeJsonString(out, graph.hasNode(from) ? to : from);
+        writeJsonString(out, graph.hasPlace(from) ? to : from);
         out << "}";
     } else {
         Route route = graph.shortestPath(from, to);
-        out << "{\"found\":" << (route.found ? "true" : "false") << ",\"steps\":" << route.steps << ",\"path\":[";
+        out << "{\"found\":" << (route.found ? "true" : "false") << ",\"steps\":" << route.totalSteps << ",\"path\":[";
         for (size_t i = 0; i < route.path.size(); ++i) {
             if (i) out << ',';
             writeJsonString(out, route.path[i]);

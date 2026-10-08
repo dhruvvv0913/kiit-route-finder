@@ -147,6 +147,10 @@ function findRoute() {
     li.textContent = text;
     return li;
   }));
+  const startFloor = placeOf(a).floor, endFloor = placeOf(b).floor;
+  const floorsNote = $("floors-note");
+  floorsNote.hidden = startFloor === endFloor;
+  floorsNote.textContent = `This route starts on the ${FLOOR_NAMES[startFloor]} floor and ends on the ${FLOOR_NAMES[endFloor]} floor. Switch floors above the map to see each part.`;
   $("result").hidden = false;
   say("");
   history.replaceState(null, "", "#" + a + "-" + b);
@@ -394,8 +398,10 @@ function pickRoom(name) {
 function showDataNote() {
   const measured = plan.edges.filter(e => e.steps != null).length;
   const stairs = plan.nodes.filter(n => n.kind === "stair");
-  const linked = stairs.filter(n => n.flightSteps != null).length;
+  const counted = stairs.filter(n => n.flightSteps != null).length;
+  const demo = measured < plan.edges.length || counted < stairs.length;
+  $("demo-badge").hidden = !demo;
   $("data-note").textContent =
-    `${measured} of ${plan.edges.length} corridor segments have been measured; the rest are estimated from the floor plan, so totals are approximate. ` +
-    `Stairs linked between floors: ${linked} of ${stairs.length}.`;
+    `${demo ? "Demo mode. " : ""}${measured} of ${plan.edges.length} corridor segments have been measured; the rest are estimated from the floor plan. ` +
+    `${counted} of ${stairs.length} staircases counted; the rest use about ${plan.meta.stairFlightEst} steps per floor.`;
 }
