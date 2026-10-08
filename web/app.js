@@ -3,7 +3,7 @@
 // places, asks the C++ for a route, and shows it as directions and on the map.
 "use strict";
 
-const FLOOR_NAMES = ["Ground", "1st", "2nd"];
+const FLOOR_NAMES = ["Ground", "1st", "2nd", "3rd"];
 const NS = "http://www.w3.org/2000/svg";
 const $ = id => document.getElementById(id);
 
@@ -85,7 +85,7 @@ function listPlaces() {
     o.value = text;
     options.appendChild(o);
   };
-  for (const f of [0, 1, 2]) {
+  for (const f of plan.meta.floors) {
     plan.rooms.forEach(r => add(roomOn(r.id, f), roomOn(r.id, f), true));
     plan.nodes.forEach(n => {
       const named = n.kind === "toilet" || n.kind === "stair" || (n.kind === "entry" && f === 0);
@@ -266,7 +266,7 @@ const pathD = pts => "M" + pts.map(p => p.join(" ")).join(" L");
 const ENTRY_LABEL = {
   N1: { rot: 0, dx: -11, dy: 3.5, anchor: "end", text: "Entry" },
   N2: { rot: -90, dx: 0, dy: 19, anchor: "middle", text: "From C block" },
-  N3: { rot: 0, dx: -11, dy: 3.5, anchor: "end", text: "From C block" },
+  N3: { rot: 0, dx: -4, dy: 20, anchor: "middle", text: "From C block" },  // below the C-block passage
   N4: { rot: -90, dx: 0, dy: 19, anchor: "middle", text: "Entry" },
 };
 

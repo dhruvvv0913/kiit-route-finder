@@ -44,11 +44,11 @@ All commands go through `node scripts/build.mjs <step>`; the npm scripts wrap th
 The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/graph.txt` → C++ `Graph`. The C++ runs natively (tests, CLI) and as WebAssembly (website).
 
 - **`data/floor-graph.json` is the only hand-edited data.** It holds one floor's layout: nodes, rooms and edges.
-- **`build.mjs graph` expands it to all 3 floors.** Floors are identical; only room numbers change (`A006` → `A106` → `A206`).
+- **`build.mjs graph` expands it to every floor in `meta.floors`** (ground, 1st, 2nd, 3rd). Floors are identical; only room numbers change (`A006` → `A106` → `A206` → `A306`). The website's `FLOOR_NAMES` must have one name per floor.
   - Rooms get their real numbers.
   - Every other place is `<id>@<floor>` (`J3@0`, `D2@2`, `T1@1`).
   - Each room links to its door point with half a corridor crossing (`meta.corridorCrossSteps ?? corridorCrossEst`).
-  - Every stair is linked `S1@0–S1@1–S1@2` with `flightSteps ?? meta.stairFlightEst`. The user says every staircase is identical, about 25 steps per floor.
+  - Every stair is linked floor to floor (`S1@0–S1@1–S1@2–S1@3`) with `flightSteps ?? meta.stairFlightEst`. The user says every staircase is identical, about 25 steps per floor.
   - **This generator is the only place that knows about floors.** The C++ only sees a generic named, weighted, undirected edge list (`placeA placeB steps` per line), and must stay that way.
 - **`cpp/graph.cpp`** holds only the adjacency list (`map` name → index), the text loader, and the simple Dijkstra. `legs` come from `dist[node] - dist[prev]`.
 - **Floyd–Warshall lives only in `tests.cpp`**, which builds its own matrix from `graph.txt`.
@@ -65,7 +65,7 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - every same-floor room pair is reachable and symmetric
   - facing rooms share a door point
 
-  `rooms.size() == 120` assumes 3 floors × 40 rooms.
+  `rooms.size() == 160` assumes 4 floors × 40 rooms.
 
 ## `data/floor-graph.json` details
 
@@ -80,13 +80,13 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - `est` is a rough estimate (drawing length × 0.14) used while `steps` is null.
   - `via` holds bend points for drawing only.
 - **`x`/`y` and room `rect`** are traced from the ground-floor board photo. Use them for drawing and directions only, never as weights.
-- **Keep ids stable.** Edge ids `e01`–`e61` and node ids are used by the step-count collection page; add new ids rather than renumbering.
+- **Keep ids stable.** Edge ids `e01`–`e62` and node ids are used by the step-count collection page; add new ids rather than renumbering.
 
 ## Collecting step counts
 
 - **Current plan:** the user collects counts with the walk guide at https://claude.ai/artifact/NycktEHqmF7ZwUsC2bJA9Q, built from `data/walks.json`, and pastes running counts into chat. For example: `W1 Block A, top corridor: A006=6, A007/A008=14, A009/A010=22, J2=27`.
   - Several teammates may count, and each pasted block names its counter. Everyone also walks W1, so their step lengths can be matched: scale each person's counts by (reference W1 end count ÷ their W1 end count).
-  - Each walk starts at `start` with count 0. The edge between consecutive stops = count difference. Edges are matched by node pair (`walks.json` covers all 61 edges exactly once).
+  - Each walk starts at `start` with count 0. The edge between consecutive stops = count difference. Edges are matched by node pair (`walks.json` covers all 62 edges exactly once).
   - The guide also returns the corridor crossing (`meta.corridorCrossSteps`), one staircase's steps (`flightSteps` for all stairs), and answers about toilet stairs, the lift, courtyards and room names.
 - Copy confirmed values into `edges[].steps`, `nodes[].flightSteps` and `meta.corridorCrossSteps`. Then run `npm run build:all`; the DEMO badge disappears once nothing is estimated.
 - **Superseded:** the old per-segment page, https://claude.ai/artifact/NLsfsBqswPCwjGXG5ArvRS, keeps its data in the `ArtifactData` collections `edges`, `stairs` and `settings/main`.

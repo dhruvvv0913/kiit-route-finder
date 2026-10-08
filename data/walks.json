@@ -30,6 +30,7 @@
     { "edge": "e50", "from": "J11", "to": "T6", "text": "Turning J11 → Ladies toilet door (Block B, bottom-right)" },
     { "edge": "e54", "from": "J10", "to": "N4", "text": "Corner J10 → Block B main entry doorway (ground floor)" },
     { "edge": "e53", "from": "D21", "to": "N3", "text": "Outside B018 → Entry from C block (Block B side)" },
+    { "edge": "e62", "from": "N2", "to": "N3", "text": "Entry from C block (Block A side) → through C block → Entry from C block (Block B side)" },
     { "edge": "e55", "from": "J1", "to": "S1", "text": "Corner J1 → first step of Stair A1" },
     { "edge": "e56", "from": "J3", "to": "S2", "text": "Corner J3 → first step of Stair A2" },
     { "edge": "e57", "from": "D11", "to": "S3", "text": "Corridor outside Stair A3 (next to A017) → its first step" },

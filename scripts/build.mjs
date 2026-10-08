@@ -14,7 +14,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const at = (...parts) => path.join(root, ...parts);
 const isWin = process.platform === "win32";
 const exe = name => (isWin ? name + ".exe" : name);
-const FLOORS = [0, 1, 2];
 const CXX_FLAGS = ["-std=c++14", "-O2", "-Wall", "-Wextra"];
 
 function run(cmd, args) {
@@ -32,6 +31,7 @@ function fail(message) {
 // rooms get their real numbers, and stairs with a step count link each floor to the next.
 function graph() {
   const G = JSON.parse(fs.readFileSync(at("data", "floor-graph.json"), "utf8"));
+  const FLOORS = G.meta.floors;  // 0 = ground floor
   const ids = new Set(G.nodes.map(n => n.id));
   const problems = [];
   for (const e of G.edges) {

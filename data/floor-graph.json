@@ -1,12 +1,8 @@
 {
   "meta": {
     "building": "School of Computer Engineering, Block A & B",
-    "note": "One layout shared by every floor. Room ids here use ground-floor numbers (A0xx / B0xx); floor 1 is A1xx / B1xx and floor 2 is A2xx / B2xx.",
-    "floors": [
-      0,
-      1,
-      2
-    ],
+    "note": "One layout shared by every floor. Room ids here use ground-floor numbers (A0xx / B0xx); floor 1 is A1xx / B1xx, floor 2 is A2xx / B2xx and floor 3 is A3xx / B3xx.",
+    "floors": [0, 1, 2, 3],
     "coordinates": "x/y are positions traced from the ground-floor board photo; they are for drawing only, never for distance",
     "weights": "edge.steps = counted walking steps along the corridor centre line (null until counted); edge.est = rough estimate from the drawing, used while steps is null",
     "estimateScale": "est = drawing length x 0.14 (the 2nd-floor sketch gives the A top corridor as 67.5 ft = 193 units, at ~2.5 ft per step)",
@@ -181,6 +177,7 @@
     { "id": "e58", "from": "J5", "to": "S4", "group": "To the stairs", "steps": null, "est": 7 },
     { "id": "e59", "from": "J6", "to": "S5", "group": "To the stairs", "steps": null, "est": 7 },
     { "id": "e60", "from": "J8", "to": "S6", "group": "To the stairs", "steps": null, "est": 7 },
-    { "id": "e61", "from": "J10", "to": "S7", "group": "To the stairs", "steps": null, "est": 7 }
+    { "id": "e61", "from": "J10", "to": "S7", "group": "To the stairs", "steps": null, "est": 7 },
+    { "id": "e62", "from": "N2", "to": "N3", "group": "C block passage", "steps": null, "est": 27, "note": "added by the user on 2026-10-08: passage through C block joining the two C-block entries, 67.5 ft (= 27 steps at 2.5 ft per step)" }
   ]
 }

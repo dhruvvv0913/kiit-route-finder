@@ -33,9 +33,9 @@ npm run serve                          # open http://localhost:8080
 
 | Path | Contents |
 |---|---|
-| `data/floor-graph.json` | The floor plan as a graph. All three floors share this layout. |
+| `data/floor-graph.json` | The floor plan as a graph. All four floors (ground, 1st, 2nd, 3rd) share this layout. |
 | `cpp/` | `graph.hpp/.cpp` (graph + Dijkstra), `main.cpp` (terminal program), `wasm_api.cpp` (browser interface), `tests.cpp` (includes Floyd–Warshall) |
-| `scripts/build.mjs` | Expands the plan to 3 floors (`web/graph.txt`), compiles, runs the tests |
+| `scripts/build.mjs` | Expands the plan to every floor (`web/graph.txt`), compiles, runs the tests |
 | `web/` | The website Vercel serves, including the generated graph and the compiled `router.wasm` |
 
 The site is in **demo mode** until the building is measured: step counts are estimates from the floor plan. The measuring plan (nine corridor walks plus short counts) is in `data/walks.json`.
