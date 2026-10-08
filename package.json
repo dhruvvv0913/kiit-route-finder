@@ -10,5 +10,8 @@
     "wasm": "node scripts/build.mjs wasm",
     "build:all": "node scripts/build.mjs all",
     "serve": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "redis": "^5.12.1"
   }
 }
