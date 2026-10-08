@@ -91,7 +91,7 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - The form saves through the Vercel function `api/counts.js` into Upstash Redis (env `KV_REST_API_URL` / `KV_REST_API_TOKEN`, connected in the Vercel dashboard).
   - There are no names or accounts; the user dropped contributor tracking. Anyone with the link can save.
   - Only the current number per key is kept, in the Redis hash `step-counts` (`HSET` / `HDEL`). The user doesn't want any history: people re-type a number or tap "Clear this walk" (two taps) to redo a walk.
-  - Read the current values with `curl https://kiit-route-finder.vercel.app/api/counts`.
+  - Read the current values with `curl https://kiit-route-finder.vercel.app/api/counts.js`. On this Vercel project the function only answers at its file name; `/api/counts` gives 404.
   - Locally, `npm run serve` runs the same function with an in-memory store.
 - **Keys and walks:**
   - `W<n>-<i>` is the running count at stop i of walk n in `data/walks.json` (copied to `web/walks.json` by `npm run graph`). Each walk starts at `start` with count 0, and the edge between consecutive stops = count difference. Edges are matched by node pair; `walks.json` covers all 62 edges exactly once.

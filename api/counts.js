@@ -1,6 +1,6 @@
 // Shared store for the step-counting form (web/count.html). Runs as a Vercel function.
-//   GET  /api/counts   -> { counts: { "W1-0": { value, at }, ... } }   the current number in every box
-//   POST /api/counts   { key, value } -> { ok: true, key, value, at }  (value null empties the box)
+//   GET  /api/counts.js   -> { counts: { "W1-0": { value, at }, ... } }   the current number in every box
+//   POST /api/counts.js   { key, value } -> { ok: true, key, value, at }  (value null empties the box)
 // Only the current number is kept: saving again replaces it.
 //
 // Storage: an Upstash Redis database connected to the Vercel project (it adds KV_REST_API_URL and
@@ -16,6 +16,8 @@ function database() {
   return url && token ? { url, token } : null;
 }
 const useMemory = () => !database() && process.env.LOCAL_MEMORY_STORE;
+// Names (never values) of database-looking settings, to see why saving isn't switched on.
+const databaseSettingNames = () => Object.keys(process.env).filter(k => /KV|REDIS|UPSTASH/i.test(k)).sort();
 
 async function redis(command) {
   const { url, token } = database();
@@ -34,7 +36,7 @@ const reply = (body, status = 200) => Response.json(body, { status, headers: { "
 export async function GET() {
   try {
     if (useMemory()) return reply({ counts: memory });
-    if (!database()) return reply({ error: NOT_SET_UP }, 503);
+    if (!database()) return reply({ error: NOT_SET_UP, settingsSeen: databaseSettingNames() }, 503);
     const flat = await redis(["HGETALL", HASH]);  // [key1, json1, key2, json2, ...]
     const counts = {};
     for (let i = 0; i < flat.length; i += 2) counts[flat[i]] = JSON.parse(flat[i + 1]);

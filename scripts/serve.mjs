@@ -27,7 +27,7 @@ async function api(req, res) {
 
 http.createServer((req, res) => {
   const urlPath = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
-  if (urlPath === "/api/counts") return void api(req, res).catch(err => res.writeHead(500).end(String(err)));
+  if (urlPath === "/api/counts" || urlPath === "/api/counts.js") return void api(req, res).catch(err => res.writeHead(500).end(String(err)));
   const file = path.join(dir, urlPath.endsWith("/") ? urlPath + "index.html" : urlPath);
   if (!file.startsWith(dir)) return res.writeHead(403).end();
   fs.readFile(file, (err, data) => {

@@ -5,6 +5,7 @@
 const $ = id => document.getElementById(id);
 const NS = "http://www.w3.org/2000/svg";
 const PENDING_KEY = "kiit-count-pending-v1";
+const API = "api/counts.js";  // on this Vercel project the function answers at its file name
 
 let plan, walks;
 const nodes = {}, roomsAt = {};
@@ -60,7 +61,7 @@ function banner(text) {
 
 async function load() {
   try {
-    const res = await fetch("api/counts", { cache: "no-store" });
+    const res = await fetch(API, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `the server answered ${res.status}`);
     saved = data.counts || {};
@@ -75,7 +76,7 @@ async function send(key, value) {
   state[key] = "saving";
   update();
   try {
-    const res = await fetch("api/counts", {
+    const res = await fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key, value }),
