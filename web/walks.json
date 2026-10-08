@@ -1,0 +1,46 @@
+{
+  "note": "How the team measures data/floor-graph.json. Each walk is one corridor walked with a running step count; the count at each stop minus the count at the previous stop is the steps of the edge between those two nodes. Short counts are single edges. Floors are identical, so any floor can be used.",
+  "walks": [
+    { "id": "W1", "title": "Block A, top corridor", "start": "J1", "startText": "Corner J1, top-left of Block A, where the corridor meets the Ladies toilet passage",
+      "stops": [{ "node": "D1" }, { "node": "D2" }, { "node": "D3" }, { "node": "J2", "label": "Corner J2 (end), by the Gents toilet" }] },
+    { "id": "W2", "title": "Block A, left corridor", "start": "J1", "startText": "Corner J1 again, facing down the left corridor",
+      "stops": [{ "node": "D4" }, { "node": "D5" }, { "node": "D6" }, { "node": "D7" }, { "node": "D8" }, { "node": "J3", "label": "Corner J3 (end), by the main entry" }] },
+    { "id": "W3", "title": "Block A, bottom corridor", "start": "J3", "startText": "Corner J3, by the Block A main entry",
+      "stops": [{ "node": "D9" }, { "node": "D10" }, { "node": "D11", "label": "Staircase next to A017" }, { "node": "J4", "label": "Corner J4 (end)" }] },
+    { "id": "W4", "title": "Block A, right corridor", "start": "J2", "startText": "Corner J2, by the top Gents toilet",
+      "stops": [{ "node": "D12" }, { "node": "D13" }, { "node": "J5", "label": "Turning J5 into the A–B corridor" }, { "node": "J4", "label": "Corner J4" }, { "node": "D14" }, { "node": "D15" }, { "node": "N2", "label": "Entry from C block (end)" }] },
+    { "id": "W5", "title": "A–B link corridor", "start": "J5", "startText": "Turning J5, where the link corridor leaves Block A (by A013)",
+      "stops": [{ "node": "D16" }, { "node": "D17" }, { "node": "D18" }, { "node": "J6", "label": "Junction J6 (end), where it meets Block B" }] },
+    { "id": "W6", "title": "Block B, left corridor", "start": "J6", "startText": "Junction J6, end of the link corridor",
+      "stops": [{ "node": "J7", "label": "Corner J7, top-left of Block B" }, { "node": "D19" }, { "node": "D20" }, { "node": "D21", "label": "B018 (opposite the C-block entry)" }, { "node": "J9", "label": "Corner J9 (end)" }] },
+    { "id": "W7", "title": "Block B, top corridor", "start": "J7", "startText": "Corner J7, top-left of Block B",
+      "stops": [{ "node": "D22" }, { "node": "D23" }, { "node": "D24" }, { "node": "J8", "label": "Corner J8 (end), by the Gents toilet" }] },
+    { "id": "W8", "title": "Block B, right corridor", "start": "J8", "startText": "Corner J8, by the Block B Gents toilet",
+      "stops": [{ "node": "D25" }, { "node": "D26" }, { "node": "D27" }, { "node": "D28" }, { "node": "J11", "label": "Turning J11 to the Ladies toilet" }, { "node": "D29" }, { "node": "J10", "label": "Corner J10 (end), by the Block B entry" }] },
+    { "id": "W9", "title": "Block B, bottom corridor", "start": "J9", "startText": "Corner J9, bottom-left of Block B",
+      "stops": [{ "node": "D30" }, { "node": "D31" }, { "node": "D32" }, { "node": "J10", "label": "Corner J10 (end)" }] }
+  ],
+  "short": [
+    { "edge": "e45", "from": "J1", "to": "T1", "text": "Corner J1 → Ladies toilet door (Block A, top-left)" },
+    { "edge": "e46", "from": "J2", "to": "T2", "text": "Corner J2 → Gents toilet door (Block A, top)" },
+    { "edge": "e47", "from": "J3", "to": "T3", "text": "Corner J3 → Gents toilet door (Block A, bottom-left)" },
+    { "edge": "e51", "from": "J3", "to": "N1", "text": "Corner J3 → Block A main entry doorway (ground floor)" },
+    { "edge": "e48", "from": "J6", "to": "T4", "text": "Junction J6 → Ladies toilet door (Block B, top)" },
+    { "edge": "e49", "from": "J8", "to": "T5", "text": "Corner J8 → Gents toilet door (Block B, right)" },
+    { "edge": "e50", "from": "J11", "to": "T6", "text": "Turning J11 → Ladies toilet door (Block B, bottom-right)" },
+    { "edge": "e54", "from": "J10", "to": "N4", "text": "Corner J10 → Block B main entry doorway (ground floor)" },
+    { "edge": "e53", "from": "D21", "to": "N3", "text": "Outside B018 → Entry from C block (Block B side)" },
+    { "edge": "e62", "from": "N2", "to": "N3", "text": "Entry from C block (Block A side) → through C block → Entry from C block (Block B side)" },
+    { "edge": "e55", "from": "J1", "to": "S1", "text": "Corner J1 → first step of Stair A1" },
+    { "edge": "e56", "from": "J3", "to": "S2", "text": "Corner J3 → first step of Stair A2" },
+    { "edge": "e57", "from": "D11", "to": "S3", "text": "Corridor outside Stair A3 (next to A017) → its first step" },
+    { "edge": "e58", "from": "J5", "to": "S4", "text": "Turning J5 → first step of Stair L1" },
+    { "edge": "e59", "from": "J6", "to": "S5", "text": "Junction J6 → first step of Stair L2" },
+    { "edge": "e60", "from": "J8", "to": "S6", "text": "Corner J8 → first step of Stair B1" },
+    { "edge": "e61", "from": "J10", "to": "S7", "text": "Corner J10 → first step of Stair B2" }
+  ],
+  "once": [
+    { "id": "cross", "field": "meta.corridorCrossSteps", "text": "Straight across a corridor, from one door to the door directly opposite (e.g. A007 to A008)" },
+    { "id": "flight", "field": "nodes[stair].flightSteps", "text": "One staircase, from its first step on one floor to the corridor on the next floor up (all staircases are the same)" }
+  ]
+}

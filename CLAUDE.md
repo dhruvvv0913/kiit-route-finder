@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-DAA (Design & Analysis of Algorithms) assignment: a website that takes two rooms in Block A & B of KIIT School of Computer Engineering and returns the shortest walking route between them. Distance is measured in **walking steps**. The site is deployed on Vercel.
+DAA (Design & Analysis of Algorithms) assignment: a website that takes two rooms in Block A & B of KIIT School of Computer Engineering and returns the shortest walking route between them. Distance is measured in **walking steps**.
+
+The site is live at https://kiit-route-finder.vercel.app. Vercel deploys every push to `main` of github.com/dhruvvv0913/kiit-route-finder (private). Push only when the user asks.
 
 The students present and explain **only the C++ algorithm code** (`cpp/graph.*`). The website code is just glue.
 
@@ -76,6 +78,7 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - `entry` N1–N4: shown and offered on the ground floor only
   - `stair` S1–S7
 - **Edges:**
+  - `e62` is the passage through C block joining the two C-block entries (N2–N3). The user added it and confirmed it exists on every floor.
   - `steps` is the counted value. It stays `null` until measured; never overwrite measured values with estimates.
   - `est` is a rough estimate (drawing length × 0.14) used while `steps` is null.
   - `via` holds bend points for drawing only.
@@ -84,13 +87,21 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
 
 ## Collecting step counts
 
-- **Current plan:** the user collects counts with the walk guide at https://claude.ai/artifact/NycktEHqmF7ZwUsC2bJA9Q, built from `data/walks.json`, and pastes running counts into chat. For example: `W1 Block A, top corridor: A006=6, A007/A008=14, A009/A010=22, J2=27`.
-  - Several teammates may count, and each pasted block names its counter. Everyone also walks W1, so their step lengths can be matched: scale each person's counts by (reference W1 end count ÷ their W1 end count).
-  - Each walk starts at `start` with count 0. The edge between consecutive stops = count difference. Edges are matched by node pair (`walks.json` covers all 62 edges exactly once).
-  - The guide also returns the corridor crossing (`meta.corridorCrossSteps`), one staircase's steps (`flightSteps` for all stairs), and answers about toilet stairs, the lift, courtyards and room names.
-- Copy confirmed values into `edges[].steps`, `nodes[].flightSteps` and `meta.corridorCrossSteps`. Then run `npm run build:all`; the DEMO badge disappears once nothing is estimated.
-- **Superseded:** the old per-segment page, https://claude.ai/artifact/NLsfsBqswPCwjGXG5ArvRS, keeps its data in the `ArtifactData` collections `edges`, `stairs` and `settings/main`.
-  - It only holds `e22` = 47, entered on 2026-10-07. That's ~6–8× the estimate for two adjacent rooms; walk W5 re-measures it.
+- **The team fills in counts at https://kiit-route-finder.vercel.app/count.html.** It's built from `web/count.html`, `count.js` and `count.css`, and isn't linked from the main page.
+  - The form saves through the Vercel function `api/counts.js` into Upstash Redis (env `KV_REST_API_URL` / `KV_REST_API_TOKEN`, connected in the Vercel dashboard).
+  - There are no names or accounts; the user dropped contributor tracking. Anyone with the link can save.
+  - Only the current number per key is kept, in the Redis hash `step-counts` (`HSET` / `HDEL`). The user doesn't want any history: people re-type a number or tap "Clear this walk" (two taps) to redo a walk.
+  - Read the current values with `curl https://kiit-route-finder.vercel.app/api/counts`.
+  - Locally, `npm run serve` runs the same function with an in-memory store.
+- **Keys and walks:**
+  - `W<n>-<i>` is the running count at stop i of walk n in `data/walks.json` (copied to `web/walks.json` by `npm run graph`). Each walk starts at `start` with count 0, and the edge between consecutive stops = count difference. Edges are matched by node pair; `walks.json` covers all 62 edges exactly once.
+  - `short-<edgeId>` is a single-edge count.
+  - `once-cross` is `meta.corridorCrossSteps`.
+  - `once-flight` is `flightSteps` for every stair (all staircases are identical).
+- Copy confirmed values into `edges[].steps`, `nodes[].flightSteps` and `meta.corridorCrossSteps`. Then run `npm run build:all`; the route finder's DEMO badge disappears once nothing is estimated.
+- **Superseded, don't use:**
+  - the claude.ai walk guide (https://claude.ai/artifact/NycktEHqmF7ZwUsC2bJA9Q), which only kept numbers on each phone
+  - the per-segment page (https://claude.ai/artifact/NLsfsBqswPCwjGXG5ArvRS), which only holds `e22` = 47, a value ~6–8× the estimate
 
 ## Open questions
 
@@ -99,7 +110,7 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - inner-corner stairs open toward the nearest corner junction
   - A011/A013 open onto A's right corridor; B011 opens onto the A–B link corridor
 
-  Check the user's notes from the walk guide before relying on these.
+  Ask the user before relying on these.
 - **Unconfirmed:**
   - whether the corner toilet blocks contain stairs
   - whether the blue symbol near B011 is a lift

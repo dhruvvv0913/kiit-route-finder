@@ -1,5 +1,7 @@
 # Block A & B Route Finder
 
+Live: **https://kiit-route-finder.vercel.app**
+
 Finds the shortest walking route, in steps, between two rooms in Block A & B of the School of Computer Engineering, KIIT. Type two rooms (for example A006 and B012) or click them on the map. You get the total steps, turn-by-turn directions and the route drawn on the floor plan.
 
 ## The algorithm
@@ -38,4 +40,4 @@ npm run serve                          # open http://localhost:8080
 | `scripts/build.mjs` | Expands the plan to every floor (`web/graph.txt`), compiles, runs the tests |
 | `web/` | The website Vercel serves, including the generated graph and the compiled `router.wasm` |
 
-The site is in **demo mode** until the building is measured: step counts are estimates from the floor plan. The measuring plan (nine corridor walks plus short counts) is in `data/walks.json`.
+The site is in **demo mode** until the building is measured: step counts are estimates from the floor plan. The team enters measurements at `/count.html` (nine corridor walks plus short counts, defined in `data/walks.json`); it saves through `api/counts.js` to an Upstash Redis database connected in Vercel.

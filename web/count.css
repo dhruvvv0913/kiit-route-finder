@@ -1,0 +1,54 @@
+/* The counting form. Colours and fonts come from style.css. */
+.count { max-width: 760px; }
+.count .eyebrow a { color: inherit; }
+#screen { display: flex; flex-direction: column; gap: 18px; }
+.card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 14px 16px; min-width: 0; }
+
+.banner { margin: 0; padding: 10px 14px; border: 1.5px solid var(--end); border-radius: 4px; background: var(--end-soft); font-size: 15px; }
+
+.done-count { margin: 0 0 8px; font-size: 16px; color: var(--ink-2); }
+.done-count b { font: 700 40px/1 var(--f-display); color: var(--route); margin-right: 4px; }
+.meter { height: 8px; border-radius: 4px; background: var(--rule); overflow: hidden; }
+.meter span { display: block; height: 100%; background: var(--route); }
+
+.how ol, .how ul { margin: 8px 0 0; padding-left: 1.3rem; display: flex; flex-direction: column; gap: 6px; font-size: 16px; }
+.how p { margin: 8px 0 0; font-size: 16px; }
+.how p.hint { font-size: 14px; padding: 0; }
+
+.tasks { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.task { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 4px; background: var(--sheet); color: var(--ink); text-decoration: none; }
+.task:hover { border-color: var(--route); }
+.task .tag { grid-row: span 2; }
+.task .title { font: 600 19px var(--f-display); letter-spacing: .02em; }
+.task .where { grid-column: 2; font-size: 13.5px; color: var(--ink-2); }
+.task .pill { grid-column: 3; grid-row: 1 / span 2; }
+.tag { font: 600 14px var(--f-mono); background: var(--route); color: var(--sheet); border-radius: 3px; padding: 2px 8px; text-align: center; min-width: 2.6em; }
+.pill { font: 600 13px var(--f-mono); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--rule); color: var(--ink-2); white-space: nowrap; }
+.pill.part { border-color: var(--end); color: var(--end); }
+.pill.done { background: var(--route); border-color: var(--route); color: var(--sheet); }
+
+.back { align-self: flex-start; font: 600 16px var(--f-display); letter-spacing: .04em; color: var(--ink); text-decoration: none; padding: 6px 0; }
+.task-title { display: flex; gap: 10px; align-items: center; }
+.steps-how { margin: 0; padding-left: 1.3rem; display: flex; flex-direction: column; gap: 6px; font-size: 16px; }
+.count .map-scroll { border: 1px solid var(--rule); border-radius: 4px; }
+.count #walk-map { display: block; width: 100%; min-width: 600px; height: auto; }
+
+.stops { list-style: none; margin: 0; padding: 0; }
+.stop { display: grid; grid-template-columns: 30px minmax(0, 1fr) 7rem; gap: 6px 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--rule); }
+.stop:first-child { border-top: 0; }
+.stop .n { width: 28px; height: 28px; border-radius: 50%; background: var(--route-soft); display: grid; place-items: center; font: 600 13px var(--f-mono); }
+.stop label { font-size: 16px; overflow-wrap: anywhere; }
+.stop input { width: 100%; padding: 10px; border: 1.5px solid var(--room-edge); border-radius: 4px; background: var(--paper); font: 600 22px var(--f-mono); text-align: right; }
+.stop input:focus { border-color: var(--route); outline: none; }
+.stop .status { grid-column: 2 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); text-align: right; min-height: 1em; }
+.stop .status.ok { color: var(--route); }
+.stop .status.warn { color: var(--end); }
+.stop .status.bad { color: var(--error); }
+.clear { align-self: flex-start; padding: 8px 14px; border: 1.5px solid var(--end); border-radius: 4px; background: transparent; color: var(--end); font: 600 15px var(--f-display); letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
+.finish { align-self: stretch; text-align: center; padding: 12px; border-radius: 4px; background: var(--ink); color: var(--sheet); font: 600 18px var(--f-display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; }
+
+.walkline { fill: none; stroke: var(--route); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.arrow { fill: var(--route); }
+.jdot { fill: var(--end); stroke: var(--sheet); stroke-width: 1.5; }
+.jlabel { font: 600 9px var(--f-mono); fill: var(--end); paint-order: stroke; stroke: var(--sheet); stroke-width: 3px; }
+.startdot { fill: var(--route); stroke: var(--sheet); stroke-width: 2; }

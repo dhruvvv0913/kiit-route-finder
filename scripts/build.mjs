@@ -69,6 +69,7 @@ function graph() {
   fs.mkdirSync(at("web"), { recursive: true });
   fs.writeFileSync(at("web", "graph.txt"), lines.join("\n") + "\n");
   fs.writeFileSync(at("web", "floor-graph.json"), JSON.stringify(G));
+  fs.copyFileSync(at("data", "walks.json"), at("web", "walks.json"));  // for the counting form
   const edges = lines.filter(l => l && !l.startsWith("#")).length;
   console.log(`graph: ${edges} edges -> web/graph.txt (${measured}/${G.edges.length} segments measured, ${linked.length}/${allStairs.length} stairs linked)`);
 }
