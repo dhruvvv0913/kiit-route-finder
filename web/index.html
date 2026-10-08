@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Block A &amp; B Route Finder</title>
+<meta name="description" content="Shortest walking route between two rooms in Block A &amp; B, School of Computer Engineering, KIIT, measured in steps.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">School of Computer Engineering · Block A &amp; B</p>
+    <h1>Route finder</h1>
+    <p class="lede">Enter two rooms, like A006 and B012, to get the shortest walk between them in steps. The route comes from Dijkstra's algorithm, written in C++ and running in your browser as WebAssembly.</p>
+  </header>
+
+  <div class="layout">
+    <section class="side" aria-label="Find a route">
+      <form id="route-form" class="finder" autocomplete="off">
+        <div class="field">
+          <label for="from">From</label>
+          <input id="from" name="from" list="places" placeholder="e.g. A006" required>
+        </div>
+        <button type="button" class="swap" id="swap" aria-label="Swap start and destination" title="Swap">⇅</button>
+        <div class="field">
+          <label for="to">To</label>
+          <input id="to" name="to" list="places" placeholder="e.g. B012" required>
+        </div>
+        <button type="submit" class="go" id="go" disabled>Find route</button>
+        <datalist id="places"></datalist>
+      </form>
+      <p id="message" class="message" role="status">Loading the route finder…</p>
+
+      <div id="result" class="result" hidden>
+        <p class="summary"><span id="total" class="total"></span><span class="unit">steps</span></p>
+        <p id="summary-places" class="summary-places"></p>
+        <ol id="directions" class="directions"></ol>
+      </div>
+    </section>
+
+    <section class="map-panel" aria-labelledby="map-title">
+      <div class="map-head">
+        <h2 id="map-title">Ground floor</h2>
+        <div class="tabs" id="floor-tabs" role="tablist" aria-label="Floor"></div>
+      </div>
+      <div class="map-scroll">
+        <svg id="map" viewBox="160 132 890 680" role="img" aria-label="Map of Block A and B"></svg>
+      </div>
+      <p class="hint">Click a room to start from it, then click another to go there.</p>
+    </section>
+  </div>
+
+  <footer class="foot" id="data-note"></footer>
+</div>
+<script src="router.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "echo \"no dependencies\"",
+  "buildCommand": "echo \"web/ is prebuilt and committed (run npm run build:all locally)\"",
+  "outputDirectory": "web"
+}

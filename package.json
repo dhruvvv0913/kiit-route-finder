@@ -1,0 +1,13 @@
+{
+  "name": "kiit-block-ab-route-finder",
+  "private": true,
+  "description": "Shortest walking route (in steps) between rooms of Block A & B, KIIT School of Computer Engineering. Dijkstra in C++, compiled to WebAssembly.",
+  "scripts": {
+    "graph": "node scripts/build.mjs graph",
+    "test": "node scripts/build.mjs test",
+    "cli": "node scripts/build.mjs cli",
+    "wasm": "node scripts/build.mjs wasm",
+    "build:all": "node scripts/build.mjs all",
+    "serve": "node scripts/serve.mjs"
+  }
+}
