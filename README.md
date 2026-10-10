@@ -1,8 +1,13 @@
-# Block A & B Route Finder
+# K Map
 
-Live: **https://kiit-route-finder.vercel.app**
+Live: **https://kiit-route-finder.vercel.app** · How it works: **/how.html**
 
-Finds the shortest walking route, in steps, between two rooms in Block A & B of the School of Computer Engineering, KIIT. Type two rooms (for example A006 and B012) or click them on the map. You get the total steps, turn-by-turn directions and the route drawn on the floor plan.
+The shortest walk, in steps, between any two places in Block A & B of the School of Computer Engineering, KIIT. Type two rooms (for example A006 and B012) or tap them on the map. You get:
+- the total steps and the walking time
+- turn-by-turn directions; tap one to see that part on the map
+- the route on a zoomable floor plan, floor by floor
+
+The "nearest" buttons find the closest Gents or Ladies toilet, staircase or main entrance.
 
 ## The algorithm
 
@@ -40,4 +45,4 @@ npm run serve                          # open http://localhost:8080
 | `scripts/build.mjs` | Expands the plan to every floor (`web/graph.txt`), compiles, runs the tests |
 | `web/` | The website Vercel serves, including the generated graph and the compiled `router.wasm` |
 
-The site is in **demo mode** until the building is measured: step counts are estimates from the floor plan. The team enters measurements at `/count.html` (nine corridor walks plus short counts, defined in `data/walks.json`); it saves through `api/counts.js` to an Upstash Redis database connected in Vercel.
+Step counts: the team counted 42 of the 62 corridor segments on foot. The rest are worked out from those counts (`npm run import-counts`). The team enters measurements at `/count.html` (nine corridor walks plus short counts, defined in `data/walks.json`); it saves through `api/counts.js` to an Upstash Redis database connected in Vercel.

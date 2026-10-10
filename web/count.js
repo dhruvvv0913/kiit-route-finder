@@ -328,7 +328,7 @@ function drawMap(walk) {
     if (n.kind === "stair") S("rect", { x: -24, y: -9, width: 48, height: 18, class: "stair", transform: `translate(${n.x} ${n.y}) rotate(${n.rot})` });
     if (n.kind === "toilet") {
       S("rect", { x: n.x - 18, y: n.y - 11, width: 36, height: 22, rx: 4, class: "wc" });
-      T(n.label.startsWith("Ladies") ? "WC · L" : "WC · G", n.x, n.y, "small-label");
+      T(n.label.startsWith("Ladies") ? "Ladies" : "Gents", n.x, n.y, "small-label");
     }
   });
   if (walk) {

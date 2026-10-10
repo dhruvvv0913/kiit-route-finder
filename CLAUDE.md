@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-DAA (Design & Analysis of Algorithms) assignment: a website that takes two rooms in Block A & B of KIIT School of Computer Engineering and returns the shortest walking route between them. Distance is measured in **walking steps**.
+DAA (Design & Analysis of Algorithms) assignment, named **K Map**: a website that takes two rooms in Block A & B of KIIT School of Computer Engineering and returns the shortest walking route between them. Distance is measured in **walking steps**.
 
 The site is live at https://kiit-route-finder.vercel.app. Vercel deploys every push to `main` of github.com/dhruvvv0913/kiit-route-finder (private). Push only when the user asks.
 
@@ -57,11 +57,15 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
 - **The core is being rewritten by the user's friend.** The friend got the core (`graph.hpp`, `graph.cpp`, `main.cpp`, a sample `graph.txt`) as a zip from `for-friend/`. When the friend's code comes back, fit `wasm_api.cpp`, `main.cpp` and `tests.cpp` around it rather than changing its logic, and keep it explaining-friendly.
 - **`cpp/wasm_api.cpp`** exposes the `extern "C"` functions `load_graph(text)` and `find_route(from, to)`; the latter returns a JSON string. It is plain C++, so `tests.cpp` links and tests it natively too.
 - **`web/app.js`:**
-  - resolves typed text to place ids (room numbers, plus toilet/entry/stair labels per floor)
+  - resolves typed text to place ids: room numbers, short forms like "a6" → A006, and toilet/entry/stair labels per floor
+  - "nearest" buttons call `find_route` once per candidate (toilets of a gender, stairs on the start floor, main entrances N1/N4) and keep the fewest steps. That's still only Dijkstra.
+  - walking time = flat steps ÷ 100 + stair steps ÷ 60 minutes
+  - the map pans and zooms through the SVG `viewBox`, whose aspect always follows the element's size (`aspect()`). Room taps are detected on `pointerup`, not `click`, because of pointer capture.
   - calls the wasm through `ccall`
   - builds turn-by-turn directions from the node coordinates (cross product of headings, y-down)
   - draws the SVG map
   - **holds no shortest-path logic.** Don't add a JS fallback; routing must come from the C++.
+- **`web/how.html`** explains the graph and the simple O(V²) Dijkstra, with a worked example (the A–F "trap" graph from `tests.cpp`, rounds in node-insertion order). If the friend's Dijkstra changes how the algorithm works, update this page to match.
 - **Generated files in `web/` are committed:** `graph.txt`, `floor-graph.json`, `router.js`, `router.wasm`. Vercel can't run g++ or Emscripten (`vercel.json` only serves `web/`), so rerun `npm run graph` and `npm run wasm` and commit the outputs after changing data or C++.
 - **The tests check the real building graph:**
   - small hand-made graphs with known answers
@@ -69,6 +73,27 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - facing rooms share a door point
 
   `rooms.size() == 160` assumes 4 floors × 40 rooms.
+
+## Design (K Map)
+
+The user asked for a design that doesn't look AI-generated. It follows Anthropic's **frontend-design** guide (https://github.com/anthropics/claude-plugins-official, `plugins/frontend-design`). The user can install it with `/plugin install frontend-design@claude-plugins-official`.
+
+- **Concept:** the corridor directory board in your pocket.
+  - A black-line floor plan on white, with room numbers in Barlow Condensed (the only web font, the board's signage lettering).
+  - Everything else uses the system UI font.
+  - KIIT board green (`--frame`) for the brand and the start; the route in blue marker (`--route`); red for the destination.
+- **Layout follows real map apps** (MazeMap, Google Maps):
+  - On phones (< 900px): a full-screen map, floating search, a right-edge floor picker (G at the bottom), and a bottom sheet (`#sheet`, `.open` shows the directions).
+  - On laptops: a 400px side panel next to the map.
+  - `fitBox()` fits into `openArea()`, the part of the map not covered by the panels.
+- **Avoid the generated-design tells:**
+  - ALL-CAPS labels
+  - " · " joined meta text
+  - "→" on buttons
+  - monospace data labels
+  - identical rounded cards with the same shadow (only floating map controls get `--lift`)
+  - numbered section headings
+- **Test phone widths** with a temporary `web/_phones.html` holding 360–390px iframes, screenshotted with headless Chrome (`--blink-settings=preferredColorScheme=1` for light mode). Headless windows can't go below ~500px. Delete the file afterwards.
 
 ## `data/floor-graph.json` details
 

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How K Map works</title>
+<meta name="description" content="How K Map finds the shortest walk: the building as a graph, and Dijkstra's algorithm step by step.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f8a3d'/%3E%3Cpath d='M10 7v18M10 17l9-10M13.5 13.5 21 25' stroke='white' stroke-width='3.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  .top-bar { position: sticky; top: 0; z-index: 2; background: var(--sheet); border-bottom: 1px solid var(--rule); }
+  .top-bar .masthead { max-width: 760px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+  .doc { gap: 0; }
+  .doc > header { padding-bottom: 22px; }
+  .doc section { padding: 26px 0; border-top: 1px solid var(--rule); }
+  .doc h2 { margin: 0 0 8px; font: 700 28px/1.1 var(--f-sign); letter-spacing: .005em; }
+  .doc p, .doc li { font-size: 17px; line-height: 1.55; max-width: 66ch; }
+  .doc p { margin: 10px 0 0; }
+  .doc ol, .doc ul { margin: 10px 0 0; padding-left: 1.3rem; display: flex; flex-direction: column; gap: 6px; }
+  .doc code { font: .92em var(--f-mono); background: var(--canvas); border-radius: 4px; padding: 1px 5px; }
+  .figure { margin: 18px 0 0; overflow-x: auto; }
+  .figure svg { display: block; width: 100%; min-width: 460px; height: auto; }
+  .figure figcaption { margin-top: 8px; font-size: 14px; color: var(--ink-2); }
+  .g-edge { stroke: var(--room-edge); stroke-width: 2; }
+  .g-edge.best { stroke: var(--route); stroke-width: 6; stroke-linecap: round; }
+  .g-node { fill: var(--paper); stroke: var(--room-edge); stroke-width: 2; }
+  .g-node.start { fill: var(--paper); stroke: var(--frame); stroke-width: 5; }
+  .g-node.end { fill: var(--end); stroke: var(--end); }
+  .g-name { font: 700 19px var(--f-sign); fill: var(--ink); }
+  .g-name.on { fill: #fff; }
+  .g-node.start + .g-name.on { fill: var(--ink); }
+  .g-w { font: 600 14px var(--f-ui); fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 5px; font-variant-numeric: tabular-nums; }
+  .g-room { fill: var(--room); stroke: var(--room-edge); }
+  .g-room-name { font: 700 13px var(--f-sign); fill: var(--ink); }
+  .g-hall { stroke: var(--corridor); stroke-width: 22; stroke-linecap: round; }
+  .g-dot { fill: var(--paper); stroke: var(--room-edge); stroke-width: 1.8; }
+  .g-corner { fill: var(--room-edge); }
+  .table-wrap { margin-top: 14px; overflow-x: auto; }
+  table { border-collapse: collapse; min-width: 520px; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--rule); font-size: 16px; }
+  th { font-weight: 600; font-size: 14px; color: var(--ink-2); }
+  td:nth-child(2) { text-align: left; font-weight: 600; }
+  td.final { color: var(--frame); font-weight: 700; }
+  td.new { background: var(--route-soft); font-weight: 700; }
+  caption { caption-side: bottom; text-align: left; padding-top: 8px; font-size: 14px; color: var(--ink-2); }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 16px; }
+  .facts p { margin: 0; font-size: 15px; color: var(--ink-2); }
+  .facts b { display: block; font: 700 36px/1 var(--f-sign); color: var(--ink); }
+  .back-link { display: inline-block; margin-top: 14px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <header class="masthead">
+    <a class="brand" href="./" aria-label="K Map"><span class="mark" aria-hidden="true">K</span><span class="wordmark">K Map</span></a>
+    <a class="how" href="./">Find a route</a>
+  </header>
+</div>
+
+<main class="wrap doc">
+  <header>
+    <h1>From corridors to the shortest walk</h1>
+    <p class="lede">K Map turns Block A &amp; B into a graph and uses Dijkstra's algorithm, written in C++, to find the walk with the fewest steps between any two places.</p>
+  </header>
+
+  <section>
+    <h2>The building as a graph</h2>
+    <p>A graph is a set of <b>places</b> (nodes) joined by <b>links</b> (edges). Each link has a <b>weight</b>: here, the number of walking steps along it.</p>
+    <ul>
+      <li><b>Places:</b> every room, the spot in the corridor outside each door, every corner where corridors meet, the staircases, toilets and entrances.</li>
+      <li><b>Links:</b> the piece of corridor between two places next to each other. You can walk a corridor both ways, so every link works in both directions.</li>
+      <li><b>Floors:</b> all four floors have the same layout. Each staircase links a floor to the one above it, about 25 steps per floor.</li>
+    </ul>
+    <figure class="figure">
+      <svg viewBox="0 0 640 170" role="img" aria-label="The top corridor of Block A as a graph: corner J1, then A006 after 6 steps, A007 and A008 after 17 more, A009 and A010 after 15 more, and corner J2 after 15 more">
+        <line class="g-hall" x1="40" y1="85" x2="600" y2="85"/>
+        <rect class="g-room" x="120" y="14" width="90" height="44" rx="3"/><text class="g-room-name" x="165" y="36" text-anchor="middle" dominant-baseline="central">A006</text>
+        <rect class="g-room" x="260" y="14" width="90" height="44" rx="3"/><text class="g-room-name" x="305" y="36" text-anchor="middle" dominant-baseline="central">A007</text>
+        <rect class="g-room" x="260" y="112" width="90" height="44" rx="3"/><text class="g-room-name" x="305" y="134" text-anchor="middle" dominant-baseline="central">A008</text>
+        <rect class="g-room" x="400" y="14" width="90" height="44" rx="3"/><text class="g-room-name" x="445" y="36" text-anchor="middle" dominant-baseline="central">A009</text>
+        <rect class="g-room" x="400" y="112" width="90" height="44" rx="3"/><text class="g-room-name" x="445" y="134" text-anchor="middle" dominant-baseline="central">A010</text>
+        <line class="g-edge" x1="40" y1="85" x2="600" y2="85"/>
+        <line class="g-edge" x1="165" y1="58" x2="165" y2="85"/><line class="g-edge" x1="305" y1="58" x2="305" y2="112"/><line class="g-edge" x1="445" y1="58" x2="445" y2="112"/>
+        <circle class="g-corner" cx="40" cy="85" r="8"/><text class="g-w" x="40" y="112" text-anchor="middle">J1</text>
+        <circle class="g-corner" cx="600" cy="85" r="8"/><text class="g-w" x="600" y="112" text-anchor="middle">J2</text>
+        <circle class="g-dot" cx="165" cy="85" r="6"/><circle class="g-dot" cx="305" cy="85" r="6"/><circle class="g-dot" cx="445" cy="85" r="6"/>
+        <text class="g-w" x="102" y="80" text-anchor="middle">6</text><text class="g-w" x="235" y="80" text-anchor="middle">17</text>
+        <text class="g-w" x="375" y="80" text-anchor="middle">15</text><text class="g-w" x="522" y="80" text-anchor="middle">15</text>
+      </svg>
+      <figcaption>The top corridor of Block A. Dark dots are corners, white dots are the spots outside doors; rooms facing each other share one. The numbers are steps counted by our team.</figcaption>
+    </figure>
+    <div class="facts">
+      <p><b>400</b>places on 4 floors</p>
+      <p><b>429</b>links between them</p>
+      <p><b>160</b>rooms you can search</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dijkstra's algorithm, in four steps</h2>
+    <p>Each place gets a number: the fewest steps found so far from the start. The start is 0, everything else begins as "not reached" (∞). Then repeat:</p>
+    <ol>
+      <li><b>Pick</b> the closest place that isn't finished yet.</li>
+      <li><b>Finish it.</b> Nothing can reach it more cheaply now, because every other unfinished place is already at least as far away.</li>
+      <li><b>Relax its neighbours:</b> if walking through it gives a neighbour a shorter total, write down the new total and remember where it came from.</li>
+      <li>When the destination is finished, <b>follow the "came from" notes backwards</b> to read off the route.</li>
+    </ol>
+    <p>This is the simple version: step 1 looks through every place, so each round costs up to V checks and the whole search is <b>O(V²)</b> for V places. With 400 places that's about 160,000 checks, which takes well under a millisecond.</p>
+  </section>
+
+  <section>
+    <h2>A worked example</h2>
+    <p>Find the shortest walk from <b>A</b> to <b>F</b>. Going up through D looks cheapest at first (1 step), but the link from E to F costs 10.</p>
+    <figure class="figure">
+      <svg viewBox="0 0 560 230" role="img" aria-label="Six places: A to D 1 step, D to E 1, E to F 10, A to B 2, B to C 2, C to F 2. The shortest walk A, B, C, F is highlighted.">
+        <line class="g-edge" x1="60" y1="115" x2="200" y2="40"/><line class="g-edge" x1="200" y1="40" x2="360" y2="40"/><line class="g-edge" x1="360" y1="40" x2="500" y2="115"/>
+        <line class="g-edge best" x1="60" y1="115" x2="200" y2="190"/><line class="g-edge best" x1="200" y1="190" x2="360" y2="190"/><line class="g-edge best" x1="360" y1="190" x2="500" y2="115"/>
+        <text class="g-w" x="118" y="66" text-anchor="middle">1</text><text class="g-w" x="280" y="30" text-anchor="middle">1</text><text class="g-w" x="444" y="66" text-anchor="middle">10</text>
+        <text class="g-w" x="118" y="176" text-anchor="middle">2</text><text class="g-w" x="280" y="214" text-anchor="middle">2</text><text class="g-w" x="444" y="176" text-anchor="middle">2</text>
+        <circle class="g-node start" cx="60" cy="115" r="20"/><text class="g-name on" x="60" y="115" text-anchor="middle" dominant-baseline="central">A</text>
+        <circle class="g-node" cx="200" cy="40" r="20"/><text class="g-name" x="200" y="40" text-anchor="middle" dominant-baseline="central">D</text>
+        <circle class="g-node" cx="360" cy="40" r="20"/><text class="g-name" x="360" y="40" text-anchor="middle" dominant-baseline="central">E</text>
+        <circle class="g-node end" cx="500" cy="115" r="20"/><text class="g-name on" x="500" y="115" text-anchor="middle" dominant-baseline="central">F</text>
+        <circle class="g-node" cx="200" cy="190" r="20"/><text class="g-name" x="200" y="190" text-anchor="middle" dominant-baseline="central">B</text>
+        <circle class="g-node" cx="360" cy="190" r="20"/><text class="g-name" x="360" y="190" text-anchor="middle" dominant-baseline="central">C</text>
+      </svg>
+    </figure>
+    <div class="table-wrap">
+      <table>
+        <caption>Steps from A after each round. Green: finished. Shaded: just improved.</caption>
+        <thead><tr><th>Round</th><th>Finish</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr></thead>
+        <tbody>
+          <tr><td>start</td><td>–</td><td>0</td><td>∞</td><td>∞</td><td>∞</td><td>∞</td><td>∞</td></tr>
+          <tr><td>1</td><td>A (0)</td><td class="final">0</td><td class="new">2</td><td>∞</td><td class="new">1</td><td>∞</td><td>∞</td></tr>
+          <tr><td>2</td><td>D (1)</td><td class="final">0</td><td>2</td><td>∞</td><td class="final">1</td><td class="new">2</td><td>∞</td></tr>
+          <tr><td>3</td><td>E (2)</td><td class="final">0</td><td>2</td><td>∞</td><td class="final">1</td><td class="final">2</td><td class="new">12</td></tr>
+          <tr><td>4</td><td>B (2)</td><td class="final">0</td><td class="final">2</td><td class="new">4</td><td class="final">1</td><td class="final">2</td><td>12</td></tr>
+          <tr><td>5</td><td>C (4)</td><td class="final">0</td><td class="final">2</td><td class="final">4</td><td class="final">1</td><td class="final">2</td><td class="new">6</td></tr>
+          <tr><td>6</td><td>F (6)</td><td class="final">0</td><td class="final">2</td><td class="final">4</td><td class="final">1</td><td class="final">2</td><td class="final">6</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>F is finished at <b>6 steps</b>. Following the notes back: F came from C, C from B, B from A, so the route is <b>A → B → C → F</b>. In round 3, F was 12 through E; round 5 found the cheaper way and replaced it. That replacement is the "relax" step.</p>
+  </section>
+
+  <section>
+    <h2>Nearest toilet, stairs or way out</h2>
+    <p>There is no new algorithm here. K Map runs the same Dijkstra from your room to every candidate, for example each Gents toilet on every floor, and keeps the one with the fewest steps.</p>
+  </section>
+
+  <section>
+    <h2>Where the numbers come from</h2>
+    <p>Our team walked every corridor counting steps, writing down a running count at each door. The difference between two counts is the weight of the link between them. 42 of the 62 corridor pieces were counted this way; the rest were worked out from those counts. Staircases are about 25 steps per floor, and times assume about 100 steps a minute.</p>
+    <h3>Where it runs</h3>
+    <p>The Dijkstra code is C++ (<code>cpp/graph.cpp</code>). It is compiled to WebAssembly, so the same C++ runs inside your browser: no server is involved in finding a route.</p>
+    <a class="back-link" href="./">Find a route</a>
+  </section>
+</main>
+</body>
+</html>
