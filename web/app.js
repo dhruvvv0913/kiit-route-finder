@@ -138,7 +138,7 @@ function findRoute() {
   }
 
   Object.assign(state, { route, start: a, end: b });
-  const estimated = plan.edges.some(e => e.steps == null);
+  const estimated = !plan.meta.final && plan.edges.some(e => e.steps == null);
   $("total").textContent = (estimated ? "≈" : "") + route.steps;
   $("summary-places").textContent = `${fullLabel(placeOf(a))} → ${fullLabel(placeOf(b))}`;
   const list = $("directions");
@@ -399,8 +399,14 @@ function showDataNote() {
   const measured = plan.edges.filter(e => e.steps != null).length;
   const stairs = plan.nodes.filter(n => n.kind === "stair");
   const counted = stairs.filter(n => n.flightSteps != null).length;
-  const demo = measured < plan.edges.length || counted < stairs.length;
+  const demo = !plan.meta.final && (measured < plan.edges.length || counted < stairs.length);
   $("demo-badge").hidden = !demo;
+  if (!demo) {
+    $("data-note").textContent =
+      `Distances are walking steps. ${measured} of ${plan.edges.length} corridor segments were counted on foot by our team; ` +
+      `the rest are worked out from those counts. Stairs are about ${plan.meta.stairFlightEst} steps per floor.`;
+    return;
+  }
   $("data-note").textContent =
     `${demo ? "Demo mode. " : ""}${measured} of ${plan.edges.length} corridor segments have been measured; the rest are estimated from the floor plan. ` +
     `${counted} of ${stairs.length} staircases counted; the rest use about ${plan.meta.stairFlightEst} steps per floor.`;

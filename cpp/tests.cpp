@@ -1,5 +1,5 @@
-// Tests for the routing code: small hand-made graphs first, then the real building graph,
-// where every Dijkstra answer is checked against Floyd-Warshall.
+// Tests for the routing code: small hand-made graphs with known answers first,
+// then checks on the real building graph.
 //   node scripts/build.mjs test
 #include "graph.hpp"
 
@@ -25,7 +25,6 @@ static int checks = 0, failures = 0;
     } while (0)
 
 typedef std::vector<std::string> Names;
-const long long FAR = 1000000000000LL;
 
 static Graph fromText(const std::string& text) {
     Graph g;
@@ -89,13 +88,9 @@ static void buildingGraph(const std::string& path) {
     std::string error;
     CHECK(g.loadFromText(contents.str(), error));
 
-    // Our own copy of the edges, for Floyd-Warshall and for checking each route's legs.
+    // Our own list of the corridors, to check that every route only uses real ones.
     const Names& names = g.placeNames();
-    const int n = g.placeCount();
-    std::map<std::string, int> id;
-    for (int i = 0; i < n; ++i) id[names[i]] = i;
-    std::vector<std::vector<long long>> dist(n, std::vector<long long>(n, FAR));
-    for (int i = 0; i < n; ++i) dist[i][i] = 0;
+    std::map<std::string, long long> corridor;  // "a|b" -> steps of the shortest corridor between them
     std::istringstream lines(contents.str());
     std::string line;
     while (std::getline(lines, line)) {
@@ -103,17 +98,9 @@ static void buildingGraph(const std::string& path) {
         std::string a, b;
         long long w;
         if (!(words >> a) || a[0] == '#' || !(words >> b >> w)) continue;
-        long long& d1 = dist[id[a]][id[b]];
-        long long& d2 = dist[id[b]][id[a]];
-        d1 = d2 = std::min(d1, w);
+        for (const std::string& k : {a + "|" + b, b + "|" + a})
+            if (!corridor.count(k) || w < corridor[k]) corridor[k] = w;
     }
-    const std::vector<std::vector<long long>> direct = dist;  // single-edge weights
-
-    // Floyd-Warshall: allow each place k in turn as a stop-over on every i -> j route.
-    for (int k = 0; k < n; ++k)
-        for (int i = 0; i < n; ++i)
-            for (int j = 0; j < n; ++j)
-                if (dist[i][k] + dist[k][j] < dist[i][j]) dist[i][j] = dist[i][k] + dist[k][j];
 
     // Rooms are the names without '@' (A006, B112, ...); the second character is the floor.
     Names rooms;
@@ -121,47 +108,29 @@ static void buildingGraph(const std::string& path) {
         if (name.find('@') == std::string::npos) rooms.push_back(name);
     CHECK(rooms.size() == 160);  // 40 rooms on each of 4 floors
 
-    // Dijkstra must agree with Floyd-Warshall, and every route must use real corridors whose
-    // steps add up. Checking all 160,000 pairs takes ~25 s, so check the pairs that matter:
-    // every room to every ground- and top-floor room, and every pair of ground-floor places.
-    std::vector<std::pair<int, int>> pairs;
-    for (const std::string& a : rooms)
-        for (const std::string& b : rooms)
-            if (b[1] == '0' || b[1] == '3') pairs.push_back({id[a], id[b]});
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < n; ++j)
-            if (names[i].size() > 2 && names[j].size() > 2 && names[i].substr(names[i].size() - 2) == "@0" &&
-                names[j].substr(names[j].size() - 2) == "@0")
-                pairs.push_back({i, j});
-
-    int mismatches = 0;
-    for (const auto& pair : pairs) {
-        int i = pair.first, j = pair.second;
-        Route r = g.shortestPath(names[i], names[j]);
-        if (dist[i][j] >= FAR) {
-            if (r.found) ++mismatches;
-            continue;
-        }
-        if (!r.found || r.totalSteps != dist[i][j]) { ++mismatches; continue; }
-        long long sum = 0;
-        for (size_t k = 1; k < r.path.size(); ++k) {
-            long long w = direct[id[r.path[k - 1]]][id[r.path[k]]];
-            if (w >= FAR || w != r.legs[k - 1]) ++mismatches;
-            sum += r.legs[k - 1];
-        }
-        if (sum != r.totalSteps) ++mismatches;
-    }
-    CHECK(mismatches == 0);
-
-    // Every room reaches every other room, and A -> B is as long as B -> A.
-    int unreachable = 0, asymmetric = 0;
+    // For every pair of rooms on the same floor, and from every ground-floor room to every
+    // 3rd-floor room: a route exists, A -> B is as long as B -> A, and the route walks real
+    // corridors whose steps add up to the total.
+    int unreachable = 0, asymmetric = 0, badRoutes = 0;
     for (const std::string& a : rooms)
         for (const std::string& b : rooms) {
-            if (dist[id[a]][id[b]] >= FAR) ++unreachable;
-            if (dist[id[a]][id[b]] != dist[id[b]][id[a]]) ++asymmetric;
+            bool sameFloor = a[1] == b[1] && a < b;
+            bool bottomToTop = a[1] == '0' && b[1] == '3';
+            if (!sameFloor && !bottomToTop) continue;
+            Route r = g.shortestPath(a, b);
+            if (!r.found) { ++unreachable; continue; }
+            if (r.totalSteps != g.shortestPath(b, a).totalSteps) ++asymmetric;
+            long long sum = 0;
+            for (size_t k = 1; k < r.path.size(); ++k) {
+                auto it = corridor.find(r.path[k - 1] + "|" + r.path[k]);
+                if (it == corridor.end() || it->second != r.legs[k - 1]) ++badRoutes;
+                sum += r.legs[k - 1];
+            }
+            if (sum != r.totalSteps) ++badRoutes;
         }
     CHECK(unreachable == 0);
     CHECK(asymmetric == 0);
+    CHECK(badRoutes == 0);
 
     // Rooms facing each other share a door point, so the route just crosses the corridor.
     CHECK((g.shortestPath("A007", "A008").path == Names{"A007", "D2@0", "A008"}));
@@ -185,7 +154,7 @@ static void buildingGraph(const std::string& path) {
     }
     CHECK(up.found && climbs);
 
-    std::cout << "building graph: " << n << " places, " << rooms.size() << " rooms\n";
+    std::cout << "building graph: " << g.placeCount() << " places, " << rooms.size() << " rooms\n";
 }
 
 int main(int argc, char** argv) {

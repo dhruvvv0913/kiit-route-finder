@@ -53,7 +53,8 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - Every stair is linked floor to floor (`S1@0–S1@1–S1@2–S1@3`) with `flightSteps ?? meta.stairFlightEst`. The user says every staircase is identical, about 25 steps per floor.
   - **This generator is the only place that knows about floors.** The C++ only sees a generic named, weighted, undirected edge list (`placeA placeB steps` per line), and must stay that way.
 - **`cpp/graph.cpp`** holds only the adjacency list (`map` name → index), the text loader, and the simple Dijkstra. `legs` come from `dist[node] - dist[prev]`.
-- **Floyd–Warshall lives only in `tests.cpp`**, which builds its own matrix from `graph.txt`.
+- **The project uses Dijkstra only.** The user had Floyd–Warshall removed everywhere, tests included, because it complicates the viva. Don't add another algorithm for comparison or verification.
+- **The core is being rewritten by the user's friend.** The friend got the core (`graph.hpp`, `graph.cpp`, `main.cpp`, a sample `graph.txt`) as a zip from `for-friend/`. When the friend's code comes back, fit `wasm_api.cpp`, `main.cpp` and `tests.cpp` around it rather than changing its logic, and keep it explaining-friendly.
 - **`cpp/wasm_api.cpp`** exposes the `extern "C"` functions `load_graph(text)` and `find_route(from, to)`; the latter returns a JSON string. It is plain C++, so `tests.cpp` links and tests it natively too.
 - **`web/app.js`:**
   - resolves typed text to place ids (room numbers, plus toilet/entry/stair labels per floor)
@@ -63,8 +64,8 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - **holds no shortest-path logic.** Don't add a JS fallback; routing must come from the C++.
 - **Generated files in `web/` are committed:** `graph.txt`, `floor-graph.json`, `router.js`, `router.wasm`. Vercel can't run g++ or Emscripten (`vercel.json` only serves `web/`), so rerun `npm run graph` and `npm run wasm` and commit the outputs after changing data or C++.
 - **The tests check the real building graph:**
-  - Dijkstra equals Floyd–Warshall for all pairs
-  - every same-floor room pair is reachable and symmetric
+  - small hand-made graphs with known answers
+  - every same-floor room pair, and every ground-floor → 3rd-floor pair, is reachable and symmetric, and each route uses real corridors whose steps add up
   - facing rooms share a door point
 
   `rooms.size() == 160` assumes 4 floors × 40 rooms.
@@ -80,7 +81,7 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
 - **Edges:**
   - `e62` is the passage through C block joining the two C-block entries (N2–N3). The user added it and confirmed it exists on every floor.
   - `steps` is the counted value. It stays `null` until measured; never overwrite measured values with estimates.
-  - `est` is a rough estimate (drawing length × 0.14) used while `steps` is null.
+  - `est` is a rough estimate (drawing length × 0.14). While `steps` is null, the generator uses `round(est × meta.estFactor)` so it's comparable with real counts.
   - `via` holds bend points for drawing only.
 - **`x`/`y` and room `rect`** are traced from the ground-floor board photo. Use them for drawing and directions only, never as weights.
 - **Keep ids stable.** Edge ids `e01`–`e62` and node ids are used by the step-count collection page; add new ids rather than renumbering.
@@ -88,7 +89,10 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
 ## Collecting step counts
 
 - **The team fills in counts at https://kiit-route-finder.vercel.app/count.html.** It's built from `web/count.html`, `count.js` and `count.css`, and isn't linked from the main page.
-  - The form saves through the Vercel function `api/counts.js` into Upstash Redis (env `KV_REST_API_URL` / `KV_REST_API_TOKEN`, connected in the Vercel dashboard).
+  - The form saves through the Vercel function `api/counts.js` into the Redis database connected in the Vercel dashboard.
+    - That database provides only `REDIS_URL`, used via the `redis` npm package, the project's one dependency; Vercel installs it, so `vercel.json` must not skip installs.
+    - The Upstash REST variables `KV_REST_API_URL` / `KV_REST_API_TOKEN` are also supported.
+    - When nothing is connected, GET answers 503 with `settingsSeen`, the names of any database settings.
   - There are no names or accounts; the user dropped contributor tracking. Anyone with the link can save.
   - Only the current number per key is kept, in the Redis hash `step-counts` (`HSET` / `HDEL`). The user doesn't want any history: people re-type a number or tap "Clear this walk" (two taps) to redo a walk.
   - Read the current values with `curl https://kiit-route-finder.vercel.app/api/counts.js`. On this Vercel project the function only answers at its file name; `/api/counts` gives 404.
@@ -98,7 +102,16 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - `short-<edgeId>` is a single-edge count.
   - `once-cross` is `meta.corridorCrossSteps`.
   - `once-flight` is `flightSteps` for every stair (all staircases are identical).
-- Copy confirmed values into `edges[].steps`, `nodes[].flightSteps` and `meta.corridorCrossSteps`. Then run `npm run build:all`; the route finder's DEMO badge disappears once nothing is estimated.
+- **Import with `npm run import-counts`** (`scripts/import-counts.mjs`), then `npm run build:all`. The import:
+  - fetches the live counts and rewrites `edges[].steps`, `nodes[].flightSteps` and `meta.corridorCrossSteps` from scratch
+  - leaves out the segments next to a stop whose running count goes down (a typo), and reports them
+  - sets `meta.estFactor`, the median of real ÷ drawing estimate (1.88 on 2026-10-10)
+
+  The DEMO badge disappears once nothing is estimated.
+- **Status 2026-10-10:**
+  - All 9 walks are entered, but W3 (19, 30, **11**, 50) and W5 (25, 35, **69, 65**) have typos, so e13/e14 and e23/e24 are still estimates.
+  - 15 of 17 short counts are missing, as are `once-cross` and `once-flight`.
+  - 43 of 62 segments are measured.
 - **Superseded, don't use:**
   - the claude.ai walk guide (https://claude.ai/artifact/NycktEHqmF7ZwUsC2bJA9Q), which only kept numbers on each phone
   - the per-segment page (https://claude.ai/artifact/NLsfsBqswPCwjGXG5ArvRS), which only holds `e22` = 47, a value ~6–8× the estimate

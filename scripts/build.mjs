@@ -42,6 +42,9 @@ function graph() {
   for (const r of G.rooms) if (!ids.has(r.door)) problems.push(`${r.id}: unknown door point ${r.door}`);
   if (problems.length) fail("data/floor-graph.json:\n  " + problems.join("\n  "));
 
+  // Counted steps where we have them; else an estimate in real steps (estSteps, from the counts
+  // around a typo); else the drawing estimate scaled to real steps.
+  const weight = e => e.steps ?? e.estSteps ?? Math.max(1, Math.round(e.est * (G.meta.estFactor ?? 1)));
   const hop = Math.round((G.meta.corridorCrossSteps ?? G.meta.corridorCrossEst) / 2);
   const roomOn = (id, floor) => id[0] + floor + id.slice(2);
   const measured = G.edges.filter(e => e.steps != null).length;
@@ -57,7 +60,7 @@ function graph() {
   ];
   for (const f of FLOORS) {
     lines.push("", `# Floor ${f}: corridors, toilets, entries, stair landings`);
-    for (const e of G.edges) lines.push(`${e.from}@${f} ${e.to}@${f} ${e.steps ?? e.est}`);
+    for (const e of G.edges) lines.push(`${e.from}@${f} ${e.to}@${f} ${weight(e)}`);
     lines.push(`# Floor ${f}: rooms`);
     for (const r of G.rooms) lines.push(`${roomOn(r.id, f)} ${r.door}@${f} ${hop}`);
   }

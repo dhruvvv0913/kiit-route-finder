@@ -11,7 +11,7 @@ The building is an undirected weighted graph:
 - **Edges** are the walkable corridor pieces between them.
 - **Each weight** is the number of walking steps for that piece.
 
-The shortest route comes from **Dijkstra's algorithm** in its simple array form. Each round picks the closest place that isn't finished yet, marks it finished, and updates its neighbours. That's O(V²), which is instant for the ~300 places in the building. The code is in [`cpp/graph.cpp`](cpp/graph.cpp). The tests check it against **Floyd–Warshall** (O(V³)) for every pair of places in the building.
+The shortest route comes from **Dijkstra's algorithm** in its simple array form. Each round picks the closest place that isn't finished yet, marks it finished, and updates its neighbours. That's O(V²), which is instant for the ~400 places in the building. The code is in [`cpp/graph.cpp`](cpp/graph.cpp). The tests check it on small graphs with known answers, and check that every room in the building can reach every other room.
 
 Floors are joined by the staircases, each estimated at about 25 steps per floor.
 
@@ -36,7 +36,7 @@ npm run serve                          # open http://localhost:8080
 | Path | Contents |
 |---|---|
 | `data/floor-graph.json` | The floor plan as a graph. All four floors (ground, 1st, 2nd, 3rd) share this layout. |
-| `cpp/` | `graph.hpp/.cpp` (graph + Dijkstra), `main.cpp` (terminal program), `wasm_api.cpp` (browser interface), `tests.cpp` (includes Floyd–Warshall) |
+| `cpp/` | `graph.hpp/.cpp` (graph + Dijkstra), `main.cpp` (terminal program), `wasm_api.cpp` (browser interface), `tests.cpp` |
 | `scripts/build.mjs` | Expands the plan to every floor (`web/graph.txt`), compiles, runs the tests |
 | `web/` | The website Vercel serves, including the generated graph and the compiled `router.wasm` |
 

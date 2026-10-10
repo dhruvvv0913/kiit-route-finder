@@ -9,7 +9,8 @@
     "cli": "node scripts/build.mjs cli",
     "wasm": "node scripts/build.mjs wasm",
     "build:all": "node scripts/build.mjs all",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "import-counts": "node scripts/import-counts.mjs"
   },
   "dependencies": {
     "redis": "^5.12.1"
