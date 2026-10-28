@@ -1,166 +1,139 @@
-// Tests for the routing code: small hand-made graphs with known answers first,
-// then checks on the real building graph.
-//   node scripts/build.mjs test
+// Tests for the route finder: small graphs with known answers, the website functions,
+// then the real building.   Run: node scripts/build.mjs test
 #include "graph.hpp"
 
-#include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <sstream>
-#include <string>
-#include <vector>
+
+using namespace std;
 
 extern "C" const char* load_graph(const char* text);
 extern "C" const char* find_route(const char* from, const char* to);
 
 static int checks = 0, failures = 0;
-#define CHECK(cond)                                                            \
-    do {                                                                       \
-        ++checks;                                                              \
-        if (!(cond)) {                                                         \
-            ++failures;                                                        \
-            std::cerr << "FAIL tests.cpp:" << __LINE__ << "  " #cond "\n";     \
-        }                                                                      \
+#define CHECK(cond)                                                        \
+    do {                                                                   \
+        checks++;                                                          \
+        if (!(cond)) {                                                     \
+            failures++;                                                    \
+            cerr << "FAIL tests.cpp:" << __LINE__ << "  " #cond "\n";      \
+        }                                                                  \
     } while (0)
 
-typedef std::vector<std::string> Names;
+// A small graph for the tests to use.
+struct Test {
+    vector<string> names;
+    map<string, int> ids;
+    Matrix matrix;
+    bool ok;
+    string error;
+    Test(const string& text) { ok = buildGraph(text, names, ids, matrix, error); }
 
-static Graph fromText(const std::string& text) {
-    Graph g;
-    std::string error;
-    CHECK(g.loadFromText(text, error));
-    return g;
-}
+    // The places on the shortest route, joined with spaces ("" = no route).
+    string route(const string& from, const string& to) {
+        if (ids.count(from) == 0 || ids.count(to) == 0) return "";
+        string out;
+        for (int v : dijkstra(ids[from], ids[to], matrix)) out += (out.empty() ? "" : " ") + names[v];
+        return out;
+    }
+    // Total steps of that route (-1 = no route).
+    int steps(const string& from, const string& to) {
+        if (ids.count(from) == 0 || ids.count(to) == 0) return -1;
+        vector<int> path = dijkstra(ids[from], ids[to], matrix);
+        if (path.empty()) return -1;
+        int total = 0;
+        for (size_t i = 1; i < path.size(); i++) total += matrix[path[i - 1]][path[i]];
+        return total;
+    }
+};
 
 static void smallGraphs() {
     // The direct corridor A-B is longer than going round through C.
-    Graph g = fromText("A B 10\nA C 3\nC B 4\n");
-    Route r = g.shortestPath("A", "B");
-    CHECK(r.found && r.totalSteps == 7);
-    CHECK((r.path == Names{"A", "C", "B"}));
-    CHECK((r.legs == std::vector<int>{3, 4}));
+    Test g("A B 10\nA C 3\nC B 4\nX Y 1\n");
+    CHECK(g.ok);
+    CHECK(g.route("A", "B") == "A C B" && g.steps("A", "B") == 7);
+    CHECK(g.route("C", "C") == "C" && g.steps("C", "C") == 0);  // already there
+    CHECK(g.steps("A", "X") == -1);                             // not connected
+    CHECK(g.steps("A", "Z") == -1);                             // unknown place
 
-    // Same start and end.
-    r = g.shortestPath("C", "C");
-    CHECK(r.found && r.totalSteps == 0 && r.path.size() == 1);
+    // The same corridor twice: the shorter one counts.
+    Test p("A B 9\nA B 4\n");
+    CHECK(p.steps("A", "B") == 4);
 
-    // Unknown place, and a place with no connection.
-    CHECK(!g.shortestPath("A", "Z").found);
-    g.addEdge("X", "Y", 1);
-    CHECK(!g.shortestPath("A", "X").found);
+    // Always taking the nearest next step gives A-D-E-F (1+1+10 = 12); the shortest is A-B-C-F (6).
+    Test trap("A D 1\nD E 1\nE F 10\nA B 2\nB C 2\nC F 2\n");
+    CHECK(trap.route("A", "F") == "A B C F" && trap.steps("A", "F") == 6);
 
-    // Parallel corridors: the shorter one counts.
-    Graph p = fromText("A B 9\nA B 4\n");
-    CHECK(p.shortestPath("A", "B").totalSteps == 4);
+    // Comments, blank lines, Windows line endings and 0-step corridors are fine.
+    Test c("# comment\r\n\r\n  A B 0\r\nB C 5\r\n");
+    CHECK(c.ok && c.names.size() == 3 && c.steps("A", "C") == 5);
 
-    // Always stepping to the nearest neighbour goes A-D-E-F (1+1+10 = 12); the shortest is A-B-C-F (6).
-    Graph trap = fromText("A D 1\nD E 1\nE F 10\nA B 2\nB C 2\nC F 2\n");
-    CHECK(trap.shortestPath("A", "F").totalSteps == 6);
-
-    // Comments, blank lines and Windows line endings are ignored; zero-step corridors are allowed.
-    Graph c = fromText("# comment\r\n\r\n  A B 0\r\nB C 5\r\n");
-    CHECK(c.placeCount() == 3 && c.shortestPath("A", "C").totalSteps == 5);
-
-    // Malformed lines are rejected, naming the line.
-    Graph bad;
-    std::string error;
-    CHECK(!bad.loadFromText("A B 3\nA B\n", error) && error.find("line 2") == 0);
-    CHECK(!bad.loadFromText("A B -1\n", error));
-    CHECK(!bad.loadFromText("A B 3 4\n", error));
+    // Broken lines are refused, naming the line.
+    CHECK(!Test("A B 3\nA B\n").ok && Test("A B 3\nA B\n").error.find("line 2") == 0);
+    CHECK(!Test("A B -1\n").ok);
+    CHECK(!Test("A B 3 4\n").ok);
 }
 
-static void websiteApi() {
-    CHECK(std::string(load_graph("A B 2\nB C 3\n")) == "");
-    CHECK(std::string(find_route("A", "C")) ==
-          "{\"found\":true,\"steps\":5,\"path\":[\"A\",\"B\",\"C\"],\"legs\":[2,3]}");
-    CHECK(std::string(find_route("A", "Q")) == "{\"found\":false,\"unknown\":\"Q\"}");
-    CHECK(std::string(load_graph("A B x\n")).find("line 1") == 0);
+static void websiteFunctions() {
+    CHECK(string(load_graph("A B 2\nB C 3\n")) == "");
+    CHECK(string(find_route("A", "C")) == "{\"found\":true,\"steps\":5,\"path\":[\"A\",\"B\",\"C\"],\"legs\":[2,3]}");
+    CHECK(string(find_route("A", "Q")) == "{\"found\":false,\"unknown\":\"Q\"}");
+    CHECK(string(load_graph("A B x\n")).find("line 1") == 0);
 }
 
-static void buildingGraph(const std::string& path) {
-    std::ifstream file(path);
-    CHECK(file.good());
-    if (!file) return;
-    std::stringstream contents;
-    contents << file.rdbuf();
-    Graph g;
-    std::string error;
-    CHECK(g.loadFromText(contents.str(), error));
-
-    // Our own list of the corridors, to check that every route only uses real ones.
-    const Names& names = g.placeNames();
-    std::map<std::string, long long> corridor;  // "a|b" -> steps of the shortest corridor between them
-    std::istringstream lines(contents.str());
-    std::string line;
-    while (std::getline(lines, line)) {
-        std::istringstream words(line);
-        std::string a, b;
-        long long w;
-        if (!(words >> a) || a[0] == '#' || !(words >> b >> w)) continue;
-        for (const std::string& k : {a + "|" + b, b + "|" + a})
-            if (!corridor.count(k) || w < corridor[k]) corridor[k] = w;
-    }
+static void building(const string& file) {
+    ifstream in(file);
+    CHECK(in.good());
+    stringstream text;
+    text << in.rdbuf();
+    Test g(text.str());
+    CHECK(g.ok);
 
     // Rooms are the names without '@' (A006, B112, ...); the second character is the floor.
-    Names rooms;
-    for (const std::string& name : names)
-        if (name.find('@') == std::string::npos) rooms.push_back(name);
+    vector<string> rooms;
+    for (const string& name : g.names)
+        if (name.find('@') == string::npos) rooms.push_back(name);
     CHECK(rooms.size() == 160);  // 40 rooms on each of 4 floors
 
-    // For every pair of rooms on the same floor, and from every ground-floor room to every
-    // 3rd-floor room: a route exists, A -> B is as long as B -> A, and the route walks real
-    // corridors whose steps add up to the total.
-    int unreachable = 0, asymmetric = 0, badRoutes = 0;
-    for (const std::string& a : rooms)
-        for (const std::string& b : rooms) {
+    // Every pair of rooms on the same floor, and every ground-floor room to every 3rd-floor
+    // room: there is a route, and A -> B is as long as B -> A.
+    int unreachable = 0, oneWay = 0;
+    for (const string& a : rooms)
+        for (const string& b : rooms) {
             bool sameFloor = a[1] == b[1] && a < b;
-            bool bottomToTop = a[1] == '0' && b[1] == '3';
-            if (!sameFloor && !bottomToTop) continue;
-            Route r = g.shortestPath(a, b);
-            if (!r.found) { ++unreachable; continue; }
-            if (r.totalSteps != g.shortestPath(b, a).totalSteps) ++asymmetric;
-            long long sum = 0;
-            for (size_t k = 1; k < r.path.size(); ++k) {
-                auto it = corridor.find(r.path[k - 1] + "|" + r.path[k]);
-                if (it == corridor.end() || it->second != r.legs[k - 1]) ++badRoutes;
-                sum += r.legs[k - 1];
-            }
-            if (sum != r.totalSteps) ++badRoutes;
+            bool groundToTop = a[1] == '0' && b[1] == '3';
+            if (!sameFloor && !groundToTop) continue;
+            int there = g.steps(a, b);
+            if (there < 0) unreachable++;
+            if (there != g.steps(b, a)) oneWay++;
         }
     CHECK(unreachable == 0);
-    CHECK(asymmetric == 0);
-    CHECK(badRoutes == 0);
+    CHECK(oneWay == 0);
 
     // Rooms facing each other share a door point, so the route just crosses the corridor.
-    CHECK((g.shortestPath("A007", "A008").path == Names{"A007", "D2@0", "A008"}));
-    CHECK((g.shortestPath("B209", "B210").path == Names{"B209", "D22@2", "B210"}));
+    CHECK(g.route("A007", "A008") == "A007 D2@0 A008");
+    CHECK(g.route("B209", "B210") == "B209 D22@2 B210");
 
-    // From A015 the passage through C block (C-block entry A -> C-block entry B) beats the link corridor.
-    Route viaC = g.shortestPath("A015", "B018");
-    CHECK(std::find(viaC.path.begin(), viaC.path.end(), "N2@0") != viaC.path.end() &&
-          std::find(viaC.path.begin(), viaC.path.end(), "N3@0") != viaC.path.end());
+    // From A015 the passage through C block (34 + 34 steps) beats the link corridor.
+    CHECK(g.route("A015", "B018").find("N2@0 C_MID@0 N3@0") != string::npos);
 
-    // Going up two floors climbs one staircase twice: S?@0 -> S?@1 -> S?@2 in a row.
-    Route up = g.shortestPath("A006", "A206");
-    CHECK(g.shortestPath("A001", "B322").found);  // ground floor to the top (3rd) floor
+    // Going up two floors climbs one staircase: S?@0, S?@1, S?@2 in a row.
+    string up = g.route("A006", "A206");
     bool climbs = false;
-    for (size_t k = 2; k < up.path.size(); ++k) {
-        const std::string& s = up.path[k - 2];
-        if (s[0] == 'S' && s.substr(s.size() - 2) == "@0") {
-            std::string stair = s.substr(0, s.size() - 2);
-            climbs = climbs || (up.path[k - 1] == stair + "@1" && up.path[k] == stair + "@2");
-        }
+    for (char s = '1'; s <= '7'; s++) {
+        string stair = string("S") + s;
+        if (up.find(stair + "@0 " + stair + "@1 " + stair + "@2") != string::npos) climbs = true;
     }
-    CHECK(up.found && climbs);
+    CHECK(climbs);
 
-    std::cout << "building graph: " << g.placeCount() << " places, " << rooms.size() << " rooms\n";
+    cout << "building: " << g.names.size() << " places, " << rooms.size() << " rooms\n";
 }
 
 int main(int argc, char** argv) {
     smallGraphs();
-    websiteApi();
-    buildingGraph(argc > 1 ? argv[1] : "web/graph.txt");
-    std::cout << (checks - failures) << "/" << checks << " checks passed\n";
+    websiteFunctions();
+    building(argc > 1 ? argv[1] : "web/graph.txt");
+    cout << (checks - failures) << "/" << checks << " checks passed\n";
     return failures ? 1 : 0;
 }

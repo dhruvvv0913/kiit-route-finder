@@ -16,7 +16,7 @@ The user asked for Dijkstra to stay **simple and easy to explain**, so keep it t
 
 Don't "optimise" it back to `priority_queue`, and keep the comments written for someone explaining the code in a viva.
 
-The site is in **demo mode**: it shows a DEMO badge while any step count is still an estimate.
+The step counts were accepted as **final** on 2026-10-10 (`meta.final: true` in `data/floor-graph.json`), so the site shows no DEMO badge. `web/app.js` still shows one if `meta.final` is removed while any segment or stair is uncounted.
 
 ## Commands
 
@@ -29,7 +29,8 @@ All commands go through `node scripts/build.mjs <step>`; the npm scripts wrap th
 | `npm run cli` | Builds `build/router(.exe)` |
 | `npm run wasm` | Compiles the C++ with Emscripten `em++` into `web/router.js` + `web/router.wasm` |
 | `npm run build:all` | test + cli + wasm |
-| `npm run serve` | Serves `web/` at http://localhost:8080 (`PORT` overrides) |
+| `npm run serve` | Serves `web/` at http://localhost:8080 (`PORT` overrides), plus `api/counts.js` with an in-memory store |
+| `npm run import-counts` | Pulls the team's counts from the live counting form into `data/floor-graph.json` (see below); follow with `npm run build:all` |
 
 - **Terminal program:** `build/router web/graph.txt A006 B012` prints one route. With no rooms given, it reads `FROM TO` pairs from stdin.
 - **No single-test filter.** `tests.cpp` is one executable of `CHECK`s. Comment out calls in its `main()` to narrow a run.
@@ -52,27 +53,32 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - Each room links to its door point with half a corridor crossing (`meta.corridorCrossSteps ?? corridorCrossEst`).
   - Every stair is linked floor to floor (`S1@0–S1@1–S1@2–S1@3`) with `flightSteps ?? meta.stairFlightEst`. The user says every staircase is identical, about 25 steps per floor.
   - **This generator is the only place that knows about floors.** The C++ only sees a generic named, weighted, undirected edge list (`placeA placeB steps` per line), and must stay that way.
-- **`cpp/graph.cpp`** holds only the adjacency list (`map` name → index), the text loader, and the simple Dijkstra. `legs` come from `dist[node] - dist[prev]`.
+- **`cpp/graph.cpp` is the friend's code (integrated 2026-10-28), kept as he wrote it.** It has two plain functions declared in `graph.hpp`:
+  - `buildGraph(text, names, ids, matrix, error)` builds an **adjacency matrix** (`matrix[u][v]` = steps, `NO_EDGE` = -1; 0 is a valid weight) and keeps the smaller weight for duplicate pairs.
+  - `dijkstra(source, destination, matrix)` returns the vertex path, or empty if there is no route.
+
+  `main.cpp` is the friend's `printRoute` + `main`. There is no class and no `Route` struct; callers sum legs from the matrix. Keep any new C++ in this plain-functions style, and never "improve" his code for efficiency.
 - **The project uses Dijkstra only.** The user had Floyd–Warshall removed everywhere, tests included, because it complicates the viva. Don't add another algorithm for comparison or verification.
-- **The core is being rewritten by the user's friend.** The friend got the core (`graph.hpp`, `graph.cpp`, `main.cpp`, a sample `graph.txt`) as a zip from `for-friend/`. When the friend's code comes back, fit `wasm_api.cpp`, `main.cpp` and `tests.cpp` around it rather than changing its logic, and keep it explaining-friendly.
-- **`cpp/wasm_api.cpp`** exposes the `extern "C"` functions `load_graph(text)` and `find_route(from, to)`; the latter returns a JSON string. It is plain C++, so `tests.cpp` links and tests it natively too.
+- **Earlier hand-off:** the friend got `for-friend/dijkstra-core.zip`: `graph.hpp`, `graph.cpp`, `main.cpp`, `graph.txt`, `expected-routes.txt`, `kmap-step-counts.png` and a README. `for-friend/` is git-ignored; after any data change, regenerate `graph.txt` and `expected-routes.txt` (run `build/router` on the listed pairs) and re-zip, or the friend's checks will fail against stale totals. When the friend's code comes back, fit `wasm_api.cpp`, `main.cpp` and `tests.cpp` around it rather than changing its logic, and keep it explaining-friendly.
+- **`cpp/wasm_api.cpp`** keeps `names` / `ids` / `matrix` as globals and exposes the `extern "C"` functions `load_graph(text)` (it clears them first, because `buildGraph` appends) and `find_route(from, to)`. The latter returns a JSON string with `steps`, `path` and `legs`. It is plain C++, so `tests.cpp` links and tests it natively too.
 - **`web/app.js`:**
   - resolves typed text to place ids: room numbers, short forms like "a6" → A006, and toilet/entry/stair labels per floor
-  - "nearest" buttons call `find_route` once per candidate (toilets of a gender, stairs on the start floor, main entrances N1/N4) and keep the fewest steps. That's still only Dijkstra.
+  - "nearest" buttons call `find_route` once per candidate (toilets of a gender, stairs on the start floor, main entrances A_ENTRY/B_ENTRY) and keep the fewest steps. That's still only Dijkstra.
   - walking time = flat steps ÷ 100 + stair steps ÷ 60 minutes
   - the map pans and zooms through the SVG `viewBox`, whose aspect always follows the element's size (`aspect()`). Room taps are detected on `pointerup`, not `click`, because of pointer capture.
   - calls the wasm through `ccall`
   - builds turn-by-turn directions from the node coordinates (cross product of headings, y-down)
   - draws the SVG map
   - **holds no shortest-path logic.** Don't add a JS fallback; routing must come from the C++.
-- **`web/how.html`** explains the graph and the simple O(V²) Dijkstra, with a worked example (the A–F "trap" graph from `tests.cpp`, rounds in node-insertion order). If the friend's Dijkstra changes how the algorithm works, update this page to match.
+- **`web/steps.html`** draws one floor with every segment's weight (blue = counted, dashed red = worked out) and the place ids used in `graph.txt`, straight from `floor-graph.json`. It exists to be shared with the friend and isn't linked from the app. `?png` removes the page chrome for screenshots, which is how `for-friend/kmap-step-counts.png` is made (headless Chrome, `--force-device-scale-factor=1.5`, window 1900×1720).
+- **`web/how.html`** explains the graph (as an adjacency matrix) and the simple O(V²) Dijkstra, with a worked example (the A–F "trap" graph from `tests.cpp`, rounds in node-insertion order). If the friend's Dijkstra changes how the algorithm works, update this page to match.
 - **Generated files in `web/` are committed:** `graph.txt`, `floor-graph.json`, `router.js`, `router.wasm`. Vercel can't run g++ or Emscripten (`vercel.json` only serves `web/`), so rerun `npm run graph` and `npm run wasm` and commit the outputs after changing data or C++.
 - **The tests check the real building graph:**
   - small hand-made graphs with known answers
   - every same-floor room pair, and every ground-floor → 3rd-floor pair, is reachable and symmetric, and each route uses real corridors whose steps add up
   - facing rooms share a door point
 
-  `rooms.size() == 160` assumes 4 floors × 40 rooms.
+  `rooms.size() == 160` assumes 4 floors × 40 rooms. The building has 412 places and 444 links.
 
 ## Design (K Map)
 
@@ -101,15 +107,16 @@ The user asked for a design that doesn't look AI-generated. It follows Anthropic
   - `junction` J1–J11
   - `door` D1–D32: a corridor-centre point outside one or more doors; rooms facing each other share one
   - `toilet` T1–T6
-  - `entry` N1–N4: shown and offered on the ground floor only
+  - `entry` A_ENTRY and B_ENTRY (the main entrances, renamed from N1/N4), N2/N3 (the ends of the C-block passage) and C_ENTRY (the C-block entrance beside N2). They're shown and offered on the ground floor only.
+  - The C-block passage runs N2 → `C_MID` (a junction) → N3, and `C_STAIR` (a stair, linked floor to floor like S1–S7) hangs off C_MID. The user confirmed the passage is 34 + 34 steps and that the staircase exists.
   - `stair` S1–S7
 - **Edges:**
-  - `e62` is the passage through C block joining the two C-block entries (N2–N3). The user added it and confirmed it exists on every floor.
+  - `e62`–`e65` are the C-block passage and its staircase and entrance, on every floor. Their counts came from the user directly and are stored as `fixed` (e62/e63 = 34, e64/e65 = 2). `import-counts` only rewrites edges the counting form covers, so it never touches them.
   - `steps` is the counted value. It stays `null` until measured; never overwrite measured values with estimates.
-  - `est` is a rough estimate (drawing length × 0.14). While `steps` is null, the generator uses `round(est × meta.estFactor)` so it's comparable with real counts.
+  - `est` is a rough estimate (drawing length × 0.14). While `steps` is null, the generator uses `estSteps`, else `round(est × meta.estFactor)`, so it's comparable with real counts.
   - `via` holds bend points for drawing only.
 - **`x`/`y` and room `rect`** are traced from the ground-floor board photo. Use them for drawing and directions only, never as weights.
-- **Keep ids stable.** Edge ids `e01`–`e62` and node ids are used by the step-count collection page; add new ids rather than renumbering.
+- **Keep ids stable.** Edge ids `e01`–`e65` and node ids are used by the step-count collection page; add new ids rather than renumbering.
 
 ## Collecting step counts
 
@@ -123,20 +130,21 @@ The user asked for a design that doesn't look AI-generated. It follows Anthropic
   - Read the current values with `curl https://kiit-route-finder.vercel.app/api/counts.js`. On this Vercel project the function only answers at its file name; `/api/counts` gives 404.
   - Locally, `npm run serve` runs the same function with an in-memory store.
 - **Keys and walks:**
-  - `W<n>-<i>` is the running count at stop i of walk n in `data/walks.json` (copied to `web/walks.json` by `npm run graph`). Each walk starts at `start` with count 0, and the edge between consecutive stops = count difference. Edges are matched by node pair; `walks.json` covers all 62 edges exactly once.
+  - `W<n>-<i>` is the running count at stop i of walk n in `data/walks.json` (copied to `web/walks.json` by `npm run graph`). Each walk starts at `start` with count 0, and the edge between consecutive stops = count difference. Edges are matched by node pair; `walks.json` covers every edge except the `fixed` ones (e62–e65) exactly once.
   - `short-<edgeId>` is a single-edge count.
   - `once-cross` is `meta.corridorCrossSteps`.
   - `once-flight` is `flightSteps` for every stair (all staircases are identical).
 - **Import with `npm run import-counts`** (`scripts/import-counts.mjs`), then `npm run build:all`. The import:
   - fetches the live counts and rewrites `edges[].steps`, `nodes[].flightSteps` and `meta.corridorCrossSteps` from scratch
   - leaves out the segments next to a stop whose running count goes down (a typo), and reports them
-  - sets `meta.estFactor`, the median of real ÷ drawing estimate (1.88 on 2026-10-10)
-
-  The DEMO badge disappears once nothing is estimated.
-- **Status 2026-10-10:**
-  - All 9 walks are entered, but W3 (19, 30, **11**, 50) and W5 (25, 35, **69, 65**) have typos, so e13/e14 and e23/e24 are still estimates.
-  - 15 of 17 short counts are missing, as are `once-cross` and `once-flight`.
-  - 43 of 62 segments are measured.
+  - sets `meta.estFactor` = total counted steps ÷ total drawing estimate over the counted segments (2.03 now)
+  - fits the segments around a typo between the trusted counts either side of it, stored as `edges[].estSteps` (real steps, not scaled)
+  - ignores counts listed in `DISTRUST` at the top of the script, only while they still hold that exact value (currently W9 stop 3 = 35, which is ~36% short of the identical B top corridor); a corrected number is used automatically
+  - weight order in `build.mjs`: `steps ?? fixed ?? estSteps ?? round(est × estFactor)`
+- **Status 2026-10-28 (accepted as final by the user):**
+  - 42 of 62 segments are real counts; 20 are estimated: e13/e14 and e23/e24 from the typos in W3 and W5, e44 from the distrusted W9 count, and the 15 short counts that were never entered (toilets, entries, stair spurs, the C-block passage e62 = 55).
+  - `once-cross` and `once-flight` were never entered, so the corridor crossing uses the 4-step estimate and stairs use 25 steps per floor.
+  - Re-running the import with new counts is safe: real numbers replace estimates.
 - **Superseded, don't use:**
   - the claude.ai walk guide (https://claude.ai/artifact/NycktEHqmF7ZwUsC2bJA9Q), which only kept numbers on each phone
   - the per-segment page (https://claude.ai/artifact/NLsfsBqswPCwjGXG5ArvRS), which only holds `e22` = 47, a value ~6–8× the estimate

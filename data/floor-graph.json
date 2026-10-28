@@ -19,7 +19,8 @@
     "stairs": "each stair node is linked to the same stair on the floor above, costing flightSteps (counted) or stairFlightEst (the user's estimate: every staircase is identical, ~25 steps per floor)",
     "stairFlightEst": 25,
     "estFactor": 2.03,
-    "estFactorNote": "segments without a count or estSteps use round(est x estFactor), estFactor = total counted steps / total drawing estimate over the counted segments"
+    "estFactorNote": "segments without a count or estSteps use round(est x estFactor), estFactor = total counted steps / total drawing estimate over the counted segments",
+    "fixedNote": "edge.fixed = a step count the user gave directly (not from the counting form); import-counts leaves it alone"
   },
   "nodes": [
     { "id": "J1", "kind": "junction", "x": 266, "y": 229, "label": "A top-left corner" },
@@ -71,17 +72,20 @@
     { "id": "T4", "kind": "toilet", "x": 736, "y": 308, "label": "Ladies toilet (B, top)", "short": "Ladies WC B-top" },
     { "id": "T5", "kind": "toilet", "x": 932, "y": 404, "label": "Gents toilet (B, right)", "short": "Gents WC B-right" },
     { "id": "T6", "kind": "toilet", "x": 1014, "y": 705, "label": "Ladies toilet (B, bottom-right)", "short": "Ladies WC B-bottom" },
-    { "id": "N1", "kind": "entry", "x": 203, "y": 494, "label": "Main entry (A side)", "short": "Main entry A" },
+    { "id": "A_ENTRY", "kind": "entry", "x": 203, "y": 494, "label": "Main entry (A side)", "short": "Main entry A" },
     { "id": "N2", "kind": "entry", "x": 459, "y": 580, "label": "Entry from C block (A side)", "short": "C-block entry A" },
     { "id": "N3", "kind": "entry", "x": 652, "y": 607, "label": "Entry from C block (B side)", "short": "C-block entry B" },
-    { "id": "N4", "kind": "entry", "x": 893, "y": 772, "label": "Main entry (B side)", "short": "Main entry B" },
+    { "id": "B_ENTRY", "kind": "entry", "x": 893, "y": 772, "label": "Main entry (B side)", "short": "Main entry B" },
     { "id": "S1", "kind": "stair", "x": 302, "y": 265, "rot": -45, "label": "Stair A1 (A, top-left inner corner)", "short": "Stair A1", "flightSteps": null },
     { "id": "S2", "kind": "stair", "x": 304, "y": 438, "rot": 45, "label": "Stair A2 (A, bottom-left inner corner)", "short": "Stair A2", "flightSteps": null },
     { "id": "S3", "kind": "stair", "x": 422, "y": 447, "rot": 0, "label": "Stair A3 (A, next to A017)", "short": "Stair A3", "flightSteps": null },
     { "id": "S4", "kind": "stair", "x": 495, "y": 437, "rot": -45, "label": "Stair L1 (link corridor, A end)", "short": "Stair L1", "flightSteps": null },
     { "id": "S5", "kind": "stair", "x": 664, "y": 437, "rot": 45, "label": "Stair L2 (link corridor, B end)", "short": "Stair L2", "flightSteps": null },
     { "id": "S6", "kind": "stair", "x": 857, "y": 514, "rot": 45, "label": "Stair B1 (B, top-right inner corner)", "short": "Stair B1", "flightSteps": null },
-    { "id": "S7", "kind": "stair", "x": 857, "y": 693, "rot": -45, "label": "Stair B2 (B, bottom-right inner corner)", "short": "Stair B2", "flightSteps": null }
+    { "id": "S7", "kind": "stair", "x": 857, "y": 693, "rot": -45, "label": "Stair B2 (B, bottom-right inner corner)", "short": "Stair B2", "flightSteps": null },
+    { "id": "C_MID", "kind": "junction", "x": 556, "y": 594, "label": "Middle of the C-block passage" },
+    { "id": "C_STAIR", "kind": "stair", "x": 560, "y": 571, "rot": 0, "label": "Stair C (C block, beside the passage)", "short": "Stair C", "flightSteps": null },
+    { "id": "C_ENTRY", "kind": "entry", "x": 459, "y": 606, "label": "C block entrance", "short": "C block entrance" }
   ],
   "rooms": [
     { "id": "A001", "rect": [198,425,258,465], "door": "D8" },
@@ -176,10 +180,10 @@
     { "id": "e48", "from": "J6", "to": "T4", "group": "Toilets & entries", "via": [[697,345]], "steps": null, "est": 15 },
     { "id": "e49", "from": "J8", "to": "T5", "group": "Toilets & entries", "via": [[893,440]], "steps": null, "est": 13 },
     { "id": "e50", "from": "J11", "to": "T6", "group": "Toilets & entries", "via": [[985,671]], "steps": null, "est": 19 },
-    { "id": "e51", "from": "J3", "to": "N1", "group": "Toilets & entries", "via": [[266,494]], "steps": null, "est": 11 },
+    { "id": "e51", "from": "J3", "to": "A_ENTRY", "group": "Toilets & entries", "via": [[266,494]], "steps": null, "est": 11 },
     { "id": "e52", "from": "D15", "to": "N2", "group": "Toilets & entries", "steps": 24, "est": 5 },
     { "id": "e53", "from": "D21", "to": "N3", "group": "Toilets & entries", "steps": null, "est": 6 },
-    { "id": "e54", "from": "J10", "to": "N4", "group": "Toilets & entries", "steps": null, "est": 6 },
+    { "id": "e54", "from": "J10", "to": "B_ENTRY", "group": "Toilets & entries", "steps": null, "est": 6 },
     { "id": "e55", "from": "J1", "to": "S1", "group": "To the stairs", "steps": null, "est": 7 },
     { "id": "e56", "from": "J3", "to": "S2", "group": "To the stairs", "steps": null, "est": 8 },
     { "id": "e57", "from": "D11", "to": "S3", "group": "To the stairs", "steps": null, "est": 4 },
@@ -187,6 +191,9 @@
     { "id": "e59", "from": "J6", "to": "S5", "group": "To the stairs", "steps": null, "est": 7 },
     { "id": "e60", "from": "J8", "to": "S6", "group": "To the stairs", "steps": null, "est": 7 },
     { "id": "e61", "from": "J10", "to": "S7", "group": "To the stairs", "steps": null, "est": 7 },
-    { "id": "e62", "from": "N2", "to": "N3", "group": "C block passage", "steps": null, "est": 27, "note": "added by the user on 2026-10-08: passage through C block joining the two C-block entries, 67.5 ft (= 27 steps at 2.5 ft per step)" }
+    { "id": "e62", "from": "N2", "to": "C_MID", "group": "C block passage", "steps": null, "est": 14, "note": "user, 2026-10-28: the passage N2 to N3 is 34 + 34 steps, split at C_MID beside the C-block staircase", "fixed": 34 },
+    { "id": "e63", "from": "C_MID", "to": "N3", "group": "C block passage", "steps": null, "fixed": 34, "est": 14 },
+    { "id": "e64", "from": "C_MID", "to": "C_STAIR", "group": "C block passage", "steps": null, "fixed": 2, "est": 3 },
+    { "id": "e65", "from": "N2", "to": "C_ENTRY", "group": "C block passage", "steps": null, "fixed": 2, "est": 4 }
   ]
 }

@@ -1,4 +1,4 @@
-// Terminal front end: prints the shortest walking route between two places.
+// Terminal program: prints the shortest walking route between two places.
 //   router <graph.txt> <from> <to>
 //   router <graph.txt>              then type "FROM TO" pairs, one per line
 #include "graph.hpp"
@@ -7,48 +7,59 @@
 #include <iostream>
 #include <sstream>
 
-static void printRoute(const Graph& graph, const std::string& from, const std::string& to) {
-    if (!graph.hasPlace(from)) { std::cout << "Unknown place: " << from << "\n"; return; }
-    if (!graph.hasPlace(to)) { std::cout << "Unknown place: " << to << "\n"; return; }
+using namespace std;
 
-    Route route = graph.shortestPath(from, to);
-    if (!route.found) {
-        std::cout << "No route from " << from << " to " << to << "\n";
+// ---------------------------------------------------------------------------
+// Step 3: print the answer (total steps, places in order, steps of each hop).
+// ---------------------------------------------------------------------------
+void printRoute(const string& from, const string& to, const vector<string>& names,
+                const map<string, int>& ids, const Matrix& matrix) {
+    if (ids.count(from) == 0) { cout << "Unknown place: " << from << "\n"; return; }
+    if (ids.count(to) == 0)   { cout << "Unknown place: " << to << "\n"; return; }
+
+    vector<int> path = dijkstra(ids.at(from), ids.at(to), matrix);
+    if (path.empty()) {
+        cout << "No route from " << from << " to " << to << "\n";
         return;
     }
-    std::cout << from << " -> " << to << ": " << route.totalSteps << " steps\n  " << route.path[0];
-    for (size_t i = 1; i < route.path.size(); ++i)
-        std::cout << " -(" << route.legs[i - 1] << ")-> " << route.path[i];
-    std::cout << "\n";
+
+    int total = 0;
+    for (size_t i = 1; i < path.size(); i++) total += matrix[path[i - 1]][path[i]];
+
+    cout << from << " -> " << to << ": " << total << " steps\n  " << names[path[0]];
+    for (size_t i = 1; i < path.size(); i++)
+        cout << " -(" << matrix[path[i - 1]][path[i]] << ")-> " << names[path[i]];
+    cout << "\n";
 }
 
 int main(int argc, char** argv) {
     if (argc != 2 && argc != 4) {
-        std::cerr << "usage: router <graph.txt> [FROM TO]\n";
+        cerr << "usage: router <graph.txt> [FROM TO]\n";
         return 2;
     }
-    std::ifstream file(argv[1]);
+    ifstream file(argv[1]);
     if (!file) {
-        std::cerr << "Can't open " << argv[1] << "\n";
+        cerr << "Can't open " << argv[1] << "\n";
         return 1;
     }
-    std::stringstream contents;
+    stringstream contents;
     contents << file.rdbuf();
 
-    Graph graph;
-    std::string error;
-    if (!graph.loadFromText(contents.str(), error)) {
-        std::cerr << argv[1] << ": " << error << "\n";
+    vector<string> names;
+    map<string, int> ids;
+    Matrix matrix;
+    string error;
+    if (!buildGraph(contents.str(), names, ids, matrix, error)) {
+        cerr << argv[1] << ": " << error << "\n";
         return 1;
     }
 
     if (argc == 4) {
-        printRoute(graph, argv[2], argv[3]);
+        printRoute(argv[2], argv[3], names, ids, matrix);
         return 0;
     }
-    std::cout << "Loaded " << graph.placeCount()
-              << " places. Type FROM TO (e.g. A006 B012), Ctrl+Z then Enter to quit.\n";
-    std::string from, to;
-    while (std::cin >> from >> to) printRoute(graph, from, to);
+    cout << "Loaded " << names.size() << " places. Type FROM TO (e.g. A006 B012), Ctrl+Z then Enter to quit.\n";
+    string from, to;
+    while (cin >> from >> to) printRoute(from, to, names, ids, matrix);
     return 0;
 }

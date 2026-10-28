@@ -117,7 +117,10 @@ const estSum = ids.reduce((s, id) => s + G.edges.find(e => e.id === id).est, 0);
 if (estSum) G.meta.estFactor = Math.round((realSum / estSum) * 100) / 100;
 G.meta.estFactorNote = "segments without a count or estSteps use round(est x estFactor), estFactor = total counted steps / total drawing estimate over the counted segments";
 
+// Only the edges the counting form covers are rewritten; edges with a "fixed" count from the user stay.
+const covered = new Set([...W.walks.flatMap(w => [w.start, ...w.stops.map(s => s.node)].slice(1).map((n, i, a) => pairKey(i ? a[i - 1] : w.start, n))), ...W.short.map(s => pairKey(s.from, s.to))]);
 G.edges.forEach(e => {
+  if (!covered.has(pairKey(e.from, e.to))) return;
   e.steps = measured[e.id] ?? null;
   if (estSteps[e.id] != null && e.steps == null) e.estSteps = estSteps[e.id];
   else delete e.estSteps;

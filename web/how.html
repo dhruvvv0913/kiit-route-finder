@@ -75,6 +75,7 @@
       <li><b>Links:</b> the piece of corridor between two places next to each other. You can walk a corridor both ways, so every link works in both directions.</li>
       <li><b>Floors:</b> all four floors have the same layout. Each staircase links a floor to the one above it, about 25 steps per floor.</li>
     </ul>
+    <p>The C++ keeps the graph as an <b>adjacency matrix</b>: a table with one row and one column per place, where <code>matrix[u][v]</code> is the number of steps between u and v, or -1 if no corridor joins them. Every corridor works both ways, so the table is symmetric.</p>
     <figure class="figure">
       <svg viewBox="0 0 640 170" role="img" aria-label="The top corridor of Block A as a graph: corner J1, then A006 after 6 steps, A007 and A008 after 17 more, A009 and A010 after 15 more, and corner J2 after 15 more">
         <line class="g-hall" x1="40" y1="85" x2="600" y2="85"/>
@@ -94,8 +95,8 @@
       <figcaption>The top corridor of Block A. Dark dots are corners, white dots are the spots outside doors; rooms facing each other share one. The numbers are steps counted by our team.</figcaption>
     </figure>
     <div class="facts">
-      <p><b>400</b>places on 4 floors</p>
-      <p><b>429</b>links between them</p>
+      <p><b>412</b>places on 4 floors</p>
+      <p><b>444</b>links between them</p>
       <p><b>160</b>rooms you can search</p>
     </div>
   </section>
@@ -109,7 +110,7 @@
       <li><b>Relax its neighbours:</b> if walking through it gives a neighbour a shorter total, write down the new total and remember where it came from.</li>
       <li>When the destination is finished, <b>follow the "came from" notes backwards</b> to read off the route.</li>
     </ol>
-    <p>This is the simple version: step 1 looks through every place, so each round costs up to V checks and the whole search is <b>O(V²)</b> for V places. With 400 places that's about 160,000 checks, which takes well under a millisecond.</p>
+    <p>This is the simple version: step 1 looks through every place, and step 3 looks along the place's whole row of the matrix, so each round costs up to V checks and the whole search is <b>O(V²)</b> for V places. With 412 places that's about 170,000 checks, which takes well under a millisecond.</p>
   </section>
 
   <section>

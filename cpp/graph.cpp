@@ -1,3 +1,6 @@
+// KIIT Block A & B route finder: adjacency matrix + Dijkstra.
+// Written by the team; shared by the terminal program (main.cpp), the website (wasm_api.cpp)
+// and the tests (tests.cpp).
 #include "graph.hpp"
 
 #include <algorithm>
@@ -5,29 +8,18 @@
 
 using namespace std;
 
-const int INF = 1000000000;  // "not reachable yet"
 
-int Graph::idOf(const string& name) {
-    if (ids.count(name) == 0) {  // first time we see this place: give it the next number
-        ids[name] = (int)names.size();
-        names.push_back(name);
-        adj.push_back({});
-    }
-    return ids[name];
-}
+// ---------------------------------------------------------------------------
+// Step 1: read graph.txt and build the vertex list + adjacency matrix.
+// Vertices = rooms, door points, corners/junctions, stairs, entrances, toilets.
+// Edges    = corridors; matrix[u][v] = steps between u and v (symmetric).
+// ---------------------------------------------------------------------------
+bool buildGraph(const string& text, vector<string>& names, map<string, int>& ids,
+                Matrix& matrix, string& error) {
+    struct Corridor { int a, b, steps; };
+    vector<Corridor> corridors;
 
-bool Graph::hasPlace(const string& name) const {
-    return ids.count(name) > 0;
-}
-
-void Graph::addEdge(const string& a, const string& b, int steps) {
-    int u = idOf(a);
-    int v = idOf(b);
-    adj[u].push_back({v, steps});  // a -> b
-    adj[v].push_back({u, steps});  // b -> a (you can walk a corridor both ways)
-}
-
-bool Graph::loadFromText(const string& text, string& error) {
+    // Pass 1: read every line, give each new place a vertex number.
     istringstream input(text);
     string line;
     int lineNumber = 0;
@@ -43,57 +35,66 @@ bool Graph::loadFromText(const string& text, string& error) {
             error = "line " + to_string(lineNumber) + ": expected \"placeA placeB steps\", got \"" + line + "\"";
             return false;
         }
-        addEdge(a, b, steps);
+        for (const string& name : {a, b}) {
+            if (ids.count(name) == 0) {
+                ids[name] = (int)names.size();
+                names.push_back(name);
+            }
+        }
+        corridors.push_back({ids[a], ids[b], steps});
+    }
+
+    // Pass 2: now we know the number of vertices, so create the n x n matrix.
+    int n = (int)names.size();
+    matrix.assign(n, vector<int>(n, NO_EDGE));
+    for (const Corridor& c : corridors) {
+        // If the same pair appears twice, keep the smaller step count.
+        if (matrix[c.a][c.b] == NO_EDGE || c.steps < matrix[c.a][c.b]) {
+            matrix[c.a][c.b] = c.steps;
+            matrix[c.b][c.a] = c.steps;  // corridors can be walked both ways
+        }
     }
     return true;
 }
 
-Route Graph::shortestPath(const string& from, const string& to) const {
-    Route route;
-    if (!hasPlace(from) || !hasPlace(to)) return route;
-
-    int start = ids.at(from);
-    int end = ids.at(to);
-    int n = placeCount();
-
-    vector<int> dist(n, INF);     // dist[p] = fewest steps found so far from start to p
-    vector<int> prev(n, -1);      // prev[p] = the place just before p on that route
-    vector<bool> done(n, false);  // done[p] = true once dist[p] can't get any smaller
-    dist[start] = 0;
+// ---------------------------------------------------------------------------
+// Step 2: Dijkstra. Takes source, destination and the adjacency matrix.
+// Returns the vertices on the shortest path, source first. Empty = no route.
+// ---------------------------------------------------------------------------
+vector<int> dijkstra(int source, int destination, const Matrix& matrix) {
+    int n = (int)matrix.size();
+    vector<int> dist(n, INF);     // dist[v] = fewest steps found so far from source to v
+    vector<int> prev(n, -1);      // prev[v] = the vertex just before v on that route
+    vector<bool> done(n, false);  // done[v] = true once dist[v] can't get any smaller
+    dist[source] = 0;
 
     for (int round = 0; round < n; round++) {
-        // 1. Pick the closest place that isn't done yet.
+        // 1. Pick the closest vertex that isn't done yet.
         int u = -1;
-        for (int p = 0; p < n; p++)
-            if (!done[p] && (u == -1 || dist[p] < dist[u])) u = p;
+        for (int v = 0; v < n; v++)
+            if (!done[v] && (u == -1 || dist[v] < dist[u])) u = v;
 
-        if (dist[u] == INF) break;  // every place left is unreachable
+        if (dist[u] == INF) break;  // every vertex left is unreachable
 
-        // 2. Nothing can reach u more cheaply now, so its distance is final.
+        // 2. Its distance is final now.
         done[u] = true;
-        if (u == end) break;  // we only need the route to `end`
+        if (u == destination) break;
 
-        // 3. Relax: would walking through u give a neighbour a shorter route?
-        for (const Edge& e : adj[u]) {
-            if (!done[e.to] && dist[u] + e.steps < dist[e.to]) {
-                dist[e.to] = dist[u] + e.steps;
-                prev[e.to] = u;
+        // 3. Relax: does going through u shorten the route to any neighbour?
+        for (int v = 0; v < n; v++) {
+            if (matrix[u][v] != NO_EDGE && !done[v] && dist[u] + matrix[u][v] < dist[v]) {
+                dist[v] = dist[u] + matrix[u][v];
+                prev[v] = u;
             }
         }
     }
 
-    if (dist[end] == INF) return route;  // no route (not found)
+    vector<int> path;
+    if (dist[destination] == INF) return path;  // no route
 
-    // 4. Follow prev[] back from the end to the start, then flip it round.
-    vector<int> order;
-    for (int p = end; p != -1; p = prev[p]) order.push_back(p);
-    reverse(order.begin(), order.end());
-
-    route.found = true;
-    route.totalSteps = dist[end];
-    for (int i = 0; i < (int)order.size(); i++) {
-        route.path.push_back(names[order[i]]);
-        if (i > 0) route.legs.push_back(dist[order[i]] - dist[order[i - 1]]);
-    }
-    return route;
+    // 4. Follow prev[] back from the destination, then flip it round.
+    for (int v = destination; v != -1; v = prev[v]) path.push_back(v);
+    reverse(path.begin(), path.end());
+    return path;
 }
+

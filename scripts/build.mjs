@@ -44,7 +44,7 @@ function graph() {
 
   // Counted steps where we have them; else an estimate in real steps (estSteps, from the counts
   // around a typo); else the drawing estimate scaled to real steps.
-  const weight = e => e.steps ?? e.estSteps ?? Math.max(1, Math.round(e.est * (G.meta.estFactor ?? 1)));
+  const weight = e => e.steps ?? e.fixed ?? e.estSteps ?? Math.max(1, Math.round(e.est * (G.meta.estFactor ?? 1)));
   const hop = Math.round((G.meta.corridorCrossSteps ?? G.meta.corridorCrossEst) / 2);
   const roomOn = (id, floor) => id[0] + floor + id.slice(2);
   const measured = G.edges.filter(e => e.steps != null).length;

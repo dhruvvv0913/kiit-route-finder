@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K Map step counts</title>
+<meta name="description" content="Every corridor segment of Block A and B with its step count, as used by the route finder.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f8a3d'/%3E%3Cpath d='M10 7v18M10 17l9-10M13.5 13.5 21 25' stroke='white' stroke-width='3.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { background: var(--paper); }
+  .sheet-page { max-width: 1400px; margin: 0 auto; padding: 18px 16px 28px; display: flex; flex-direction: column; gap: 12px; }
+  .head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+  .head h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); }
+  .head p { margin: 4px 0 0; color: var(--ink-2); max-width: 70ch; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14.5px; color: var(--ink-2); align-items: center; }
+  .key span { display: inline-flex; align-items: center; gap: 8px; }
+  .key svg { flex: none; }
+  .plan { overflow: auto; border: 1px solid var(--rule); border-radius: 10px; }
+  #plan { display: block; width: 100%; min-width: 900px; height: auto; }
+  .facts { margin: 0; padding-left: 1.2rem; color: var(--ink-2); font-size: 15px; display: flex; flex-direction: column; gap: 3px; }
+  .facts b { color: var(--ink); }
+  .seg { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .seg.counted { stroke: var(--route); stroke-width: 2.6; }
+  .seg.worked { stroke: var(--end); stroke-width: 2.2; stroke-dasharray: 5 4; }
+  .w rect { stroke-width: 1.1; }
+  .w.counted rect { fill: var(--paper); stroke: var(--route); }
+  .w.worked rect { fill: var(--paper); stroke: var(--end); stroke-dasharray: 2.5 2; }
+  .w text { font: 700 9.5px var(--f-ui); fill: var(--ink); font-variant-numeric: tabular-nums; }
+  .node { fill: var(--paper); stroke: var(--ink); stroke-width: 1.2; }
+  .node.junction { fill: var(--ink); }
+  .nid { font: 600 7px var(--f-ui); fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 2.4px; }
+  .nid.big { font-size: 8.5px; fill: var(--ink); }
+  .room-label { font-size: 10px; }
+  body.png .sheet-page { max-width: none; padding: 26px 34px; }
+  body.png .plan { border: 0; overflow: visible; }
+  body.png #plan { min-width: 0; }
+</style>
+</head>
+<body>
+<div class="sheet-page">
+  <div class="head">
+    <div>
+      <h1>Step counts, Block A and B</h1>
+      <p>Every link in the route finder's graph with its weight in walking steps. All four floors are the same: room A006 is A106 on the 1st floor, A206 on the 2nd and A306 on the 3rd.</p>
+    </div>
+    <div class="key">
+      <span><svg width="34" height="10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--route)" stroke-width="2.6" stroke-linecap="round"/></svg>Counted on foot</span>
+      <span><svg width="34" height="10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--end)" stroke-width="2.2" stroke-dasharray="5 4"/></svg>Worked out from the counts</span>
+      <span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="var(--ink)"/></svg>Corner (J)</span>
+      <span><svg width="12" height="12"><circle cx="6" cy="6" r="3.2" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.2"/></svg>Spot outside a door (D)</span>
+    </div>
+  </div>
+  <div class="plan"><svg id="plan" viewBox="150 128 910 690" role="img" aria-label="Floor plan with the step count of every corridor segment"></svg></div>
+  <ul class="facts" id="facts"></ul>
+</div>
+<script>
+"use strict";
+// Draws the floor plan with every segment's weight, exactly as scripts/build.mjs writes it to graph.txt.
+const NS = "http://www.w3.org/2000/svg";
+if (new URLSearchParams(location.search).has("png")) document.body.classList.add("png");
+fetch("floor-graph.json").then(r => r.json()).then(draw);
+
+function draw(G) {
+  const svg = document.getElementById("plan");
+  const S = (tag, attrs, parent = svg) => {
+    const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    parent.appendChild(el);
+    return el;
+  };
+  const T = (text, x, y, cls, parent) => {
+    const el = S("text", { x, y, "text-anchor": "middle", "dominant-baseline": "central", class: cls }, parent);
+    el.textContent = text;
+    return el;
+  };
+  const nodes = Object.fromEntries(G.nodes.map(n => [n.id, n]));
+  const weight = e => e.steps ?? e.estSteps ?? Math.max(1, Math.round(e.est * (G.meta.estFactor ?? 1)));
+  const pts = e => [[nodes[e.from].x, nodes[e.from].y], ...(e.via || []), [nodes[e.to].x, nodes[e.to].y]];
+  const d = p => "M" + p.map(q => q.join(" ")).join(" L");
+  const along = (p, frac) => {
+    let total = 0;
+    const seg = [];
+    for (let i = 1; i < p.length; i++) { seg.push(Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1])); total += seg[seg.length - 1]; }
+    let acc = 0;
+    for (let i = 0; i < seg.length; i++) {
+      if (acc + seg[i] >= total * frac) { const t = (total * frac - acc) / seg[i]; return [p[i][0] + t * (p[i + 1][0] - p[i][0]), p[i][1] + t * (p[i + 1][1] - p[i][1])]; }
+      acc += seg[i];
+    }
+    return p[0];
+  };
+
+  const hatch = S("pattern", { id: "hatch", width: 4, height: 4, patternUnits: "userSpaceOnUse" }, S("defs", {}));
+  S("line", { x1: 0, y1: 0, x2: 0, y2: 4, class: "hatch-line" }, hatch);
+  S("rect", { x: 150, y: 128, width: 910, height: 690, class: "sheet-bg" });
+  G.edges.forEach(e => S("path", { d: d(pts(e)), class: "band" }));
+  G.rooms.forEach(r => {
+    const [x1, y1, x2, y2] = r.rect, w = x2 - x1, h = y2 - y1, cx = x1 + w / 2, cy = y1 + h / 2;
+    S("rect", { x: x1, y: y1, width: w, height: h, class: "room" });
+    const t = T(r.id, cx, cy, "room-label");
+    if (w < 42 && h > w) t.setAttribute("transform", `rotate(90 ${cx} ${cy})`);
+  });
+  G.nodes.forEach(n => {
+    if (n.kind === "stair") S("rect", { x: -24, y: -9, width: 48, height: 18, class: "stair", transform: `translate(${n.x} ${n.y}) rotate(${n.rot})` });
+  });
+
+  const lines = S("g", {}), toilets = S("g", {}), weights = S("g", {}), dots = S("g", {});
+  G.nodes.filter(n => n.kind === "toilet").forEach(n => {
+    S("rect", { x: n.x - 18, y: n.y - 11, width: 36, height: 22, rx: 4, class: "wc" }, toilets);
+    T(n.label.startsWith("Ladies") ? "Ladies" : "Gents", n.x, n.y, "small-label", toilets);
+  });
+  G.edges.forEach(e => {
+    const kind = e.steps != null ? "counted" : "worked";
+    const p = pts(e);
+    S("path", { d: d(p), class: `seg ${kind}` }, lines);
+    const [mx, my] = along(p, nodes[e.to].kind === "stair" ? 0.72 : 0.5), text = String(weight(e)), w = 7 + text.length * 5.6;
+    const g = S("g", { class: `w ${kind}`, transform: `translate(${mx.toFixed(1)} ${my.toFixed(1)})` }, weights);
+    S("rect", { x: -w / 2, y: -6.5, width: w, height: 13, rx: 3 }, g);
+    T(text, 0, 0.5, "", g);
+    S("title", {}, g).textContent = `${e.id}: ${e.from} to ${e.to}, ${text} steps (${kind === "counted" ? "counted" : "worked out"})`;
+  });
+  G.nodes.forEach(n => {
+    if (n.kind === "junction") {
+      S("circle", { cx: n.x, cy: n.y, r: 4, class: "node junction" }, dots);
+      T(n.id, n.x + 11, n.y - 9, "nid big", dots);
+    } else if (n.kind === "door") {
+      S("circle", { cx: n.x, cy: n.y, r: 2.6, class: "node" }, dots);
+      T(n.id, n.x - 9, n.y + 9, "nid", dots);
+    } else if (n.kind === "stair") {  // name on the far side from the corridor it hangs off
+      const e = G.edges.find(x => x.to === n.id || x.from === n.id), o = nodes[e.from === n.id ? e.to : e.from];
+      const dx = n.x - o.x, dy = n.y - o.y, len = Math.hypot(dx, dy) || 1;
+      T(n.id, n.x + (dx / len) * 20, n.y + (dy / len) * 20, "nid big", dots);
+    } else if (n.kind === "toilet" || n.kind === "entry") {
+      T(n.id, n.x, n.y + (n.kind === "toilet" ? 17 : -11), "nid big", dots);
+    }
+  });
+
+  const counted = G.edges.filter(e => e.steps != null).length;
+  const hop = Math.round((G.meta.corridorCrossSteps ?? G.meta.corridorCrossEst) / 2);
+  const facts = [
+    `<b>${counted} of ${G.edges.length}</b> segments were counted on foot; the other ${G.edges.length - counted} were worked out from those counts.`,
+    `Each room joins the spot outside its door with <b>${hop} steps</b>. Rooms facing each other share that spot.`,
+    `Each staircase (S1 to S7) is <b>${G.meta.stairFlightEst} steps</b> from one floor to the next.`,
+    `In <b>graph.txt</b> every place except rooms carries its floor: J3 on the ground floor is <b>J3@0</b>, on the 2nd floor <b>J3@2</b>.`,
+  ];
+  document.getElementById("facts").innerHTML = facts.map(f => `<li>${f}</li>`).join("");
+  document.body.dataset.ready = "1";
+}
+</script>
+</body>
+</html>

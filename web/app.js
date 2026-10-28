@@ -86,7 +86,7 @@ function indexPlan() {
 }
 
 const floors = () => plan.meta.floors;
-const isMainEntry = n => n.id === "N1" || n.id === "N4";
+const isMainEntry = n => n.id === "A_ENTRY" || n.id === "B_ENTRY";
 
 function listPlaces() {
   const options = $("places");
@@ -357,10 +357,11 @@ function label(text, x, y, cls, parent = svg) {
 const pathD = pts => "M" + pts.map(p => p.map(v => +v.toFixed(1)).join(" ")).join(" L");
 
 const ENTRY_LABEL = {
-  N1: { rot: 0, dx: -11, dy: 3.5, anchor: "end", text: "Entry" },
-  N2: { rot: -90, dx: 0, dy: 19, anchor: "middle", text: "From C block" },
+  A_ENTRY: { rot: 0, dx: -11, dy: 3.5, anchor: "end", text: "Entry" },
+  N2: { rot: -90, dx: -12, dy: 4, anchor: "end", text: "From C block" },  // left of the passage, clear of C_ENTRY
   N3: { rot: 0, dx: -4, dy: 20, anchor: "middle", text: "From C block" },
-  N4: { rot: -90, dx: 0, dy: 19, anchor: "middle", text: "Entry" },
+  B_ENTRY: { rot: -90, dx: 0, dy: 19, anchor: "middle", text: "Entry" },
+  C_ENTRY: { rot: 90, dx: 0, dy: 18, anchor: "middle", text: "C block" },
 };
 
 function drawMap() {
