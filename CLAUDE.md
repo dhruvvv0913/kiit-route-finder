@@ -70,6 +70,18 @@ The pipeline is `data/floor-graph.json` → `scripts/build.mjs graph` → `web/g
   - builds turn-by-turn directions from the node coordinates (cross product of headings, y-down)
   - draws the SVG map
   - **holds no shortest-path logic.** Don't add a JS fallback; routing must come from the C++.
+- **Sections and timetables:** `data/timetable.json` (copied to `web/` by `npm run graph`) holds each section's classes by weekday (1 = Monday), with K Map room ids. It was copied from the user's Plan Sync screenshots, where rooms show as C25-A214. Only **CSE 8** (Semester 5) exists so far.
+  - On first visit `app.js` asks "Which section are you in?" (a `<dialog>`) and remembers the answer in `localStorage` (`kmap-section`, or "none").
+  - The home panel then lists the chosen day's classes. Each class shows the steps from the class before it; the first class of the day is walked from the main entrance (A_ENTRY@0).
+  - A card points at the next class, or at the next day's first class once today's are over. Tapping a class routes there.
+  - `dayPlan()` joins back-to-back periods of the same subject and room into one block (the 2-hour labs CNL and DAAL), and shows free periods of 30 minutes or more. Each class shows steps and walking minutes, and the header shows the day's total walk.
+  - If the page is opened within 10 minutes of a class starting (`AUTO_ROUTE_MINUTES`), it routes to that class straight away, once per visit and only without a #link.
+  - To test times, copy `index.html` to a temporary `web/_t.html` with a script before `router.js` that fakes `Date` and sets `localStorage`, then screenshot it.
+- **It installs as an app (PWA):** `web/manifest.webmanifest`, `icon-192.png`, `icon-512.png` and `web/sw.js`.
+  - The service worker serves cached files first and refreshes them in the background, so a new version shows on the second load. It never caches `/api/`.
+  - Bump `CACHE` in `sw.js` when its file list changes.
+  - Headless Chrome can't screenshot below ~500px, so make icons at 512 and resize with Python/PIL.
+  - The subject full names in the file are guesses from the codes (EE = Engineering Economics, …); fix them if the user corrects them.
 - **`web/steps.html`** draws one floor with every segment's weight (blue = counted, dashed red = worked out) and the place ids used in `graph.txt`, straight from `floor-graph.json`. It exists to be shared with the friend and isn't linked from the app. `?png` removes the page chrome for screenshots, which is how `for-friend/kmap-step-counts.png` is made (headless Chrome, `--force-device-scale-factor=1.5`, window 1900×1720).
 - **`web/how.html`** explains the graph (as an adjacency matrix) and the simple O(V²) Dijkstra, with a worked example (the A–F "trap" graph from `tests.cpp`, rounds in node-insertion order). If the friend's Dijkstra changes how the algorithm works, update this page to match.
 - **Generated files in `web/` are committed:** `graph.txt`, `floor-graph.json`, `router.js`, `router.wasm`. Vercel can't run g++ or Emscripten (`vercel.json` only serves `web/`), so rerun `npm run graph` and `npm run wasm` and commit the outputs after changing data or C++.

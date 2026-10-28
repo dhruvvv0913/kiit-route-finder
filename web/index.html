@@ -11,6 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="app-page">
@@ -39,6 +41,7 @@
       <header class="masthead">
         <a class="brand" href="./" aria-label="K Map, start again"><span class="mark" aria-hidden="true">K</span><span class="wordmark">K Map</span></a>
         <span class="place">Block A and B, School of Computer Engineering</span>
+        <button type="button" class="section-chip" id="section-chip" hidden></button>
         <a class="how" href="how.html">How it works</a>
       </header>
 
@@ -64,6 +67,14 @@
 
     <section class="sheet" id="sheet" aria-label="Route">
       <button type="button" class="handle" id="handle" aria-controls="sheet-body" aria-expanded="false"><span class="sr">Show or hide directions</span></button>
+      <div id="classes" class="classes" hidden>
+        <div class="classes-head">
+          <p class="empty-title" id="classes-title">Your classes</p>
+          <p class="day-walk" id="day-walk"></p>
+          <div class="days" id="days" role="tablist" aria-label="Day"></div>
+        </div>
+        <div id="next-class"></div>
+      </div>
       <div id="summary-empty" class="empty">
         <p class="empty-title">Where to?</p>
         <p>Type two rooms, or tap a room on the map to start from it. A few to try:</p>
@@ -77,8 +88,10 @@
         <p class="total"><span id="total"></span> steps</p>
         <p class="time" id="time"></p>
         <p class="trip" id="trip"></p>
+        <button type="button" class="back-classes" id="back-classes" hidden>Back to my classes</button>
       </div>
       <div class="sheet-body" id="sheet-body">
+        <ol id="class-list" class="class-list" hidden></ol>
         <ol id="directions" class="directions" hidden></ol>
         <p class="note" id="data-note"></p>
       </div>
@@ -97,7 +110,17 @@
     <button type="button" class="continue" id="continue" hidden></button>
   </main>
 </div>
+<dialog id="section-dialog" class="section-dialog" aria-labelledby="section-q">
+  <form method="dialog">
+    <p class="dialog-title" id="section-q">Which section are you in?</p>
+    <p class="dialog-sub">K Map shows your timetable and the way to each class. It remembers your choice on this phone.</p>
+    <div class="section-options" id="section-options"></div>
+    <p class="dialog-sub">Only CSE 8 is available for now.</p>
+    <button value="none" class="dialog-skip">I'm not in a listed section</button>
+  </form>
+</dialog>
 <script src="router.js"></script>
 <script src="app.js"></script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});</script>
 </body>
 </html>

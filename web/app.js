@@ -12,7 +12,7 @@ const STEPS_PER_MIN = 100;        // relaxed indoor walking pace
 const STAIR_STEPS_PER_MIN = 60;   // climbing is slower
 const $ = id => document.getElementById(id);
 
-let plan, router;
+let plan, router, timetable;
 const nodeById = {}, roomById = {}, roomsAt = {}, viaFor = {};
 const places = new Map();  // what a person can type (upper case) -> graph place id
 const state = { floor: 0, route: null, start: null, end: null, focus: null };
@@ -30,6 +30,7 @@ async function start() {
       createRouter(),
     ]);
     plan = JSON.parse(planText);
+    timetable = await fetch("timetable.json").then(r => (r.ok ? r.json() : null)).catch(() => null);
     router = module;
     const error = router.ccall("load_graph", "string", ["string"], [graphText]);
     if (error) throw new Error(error);
@@ -45,6 +46,7 @@ async function start() {
   showDataNote();
   $("go").disabled = false;
   say("");
+  setupSection();
   openFromHash();
 }
 
@@ -62,6 +64,8 @@ function say(text, isError = false) {
 function openFromHash() {
   const link = decodeURIComponent(location.hash.slice(1)).match(/^([^-]+)-(.+)$/);
   if (!link) {
+    showHome();
+    if (state.route) return;  // showHome opened the way to a class starting soon
     setFloor(0);
     return fitBox(isPhone() ? BLOCK_A : FULL);  // a whole floor is too small to read on a phone
   }
@@ -190,9 +194,7 @@ function findNearest(kind) {
 
 function fail(message) {
   Object.assign(state, { route: null, start: null, end: null, focus: null });
-  $("summary-empty").hidden = false;
-  $("summary-route").hidden = true;
-  $("directions").hidden = true;
+  showHome();
   say(message, true);
   setFloor(state.floor);
 }
@@ -201,7 +203,10 @@ function show(r, a, b) {
   Object.assign(state, { route: r, start: a, end: b, focus: null });
   say("");
   $("summary-empty").hidden = true;
+  $("classes").hidden = true;
+  $("class-list").hidden = true;
   $("summary-route").hidden = false;
+  $("back-classes").hidden = !mySection();
   $("total").textContent = r.steps;
   $("time").textContent = r.steps === 0 ? "You're already there" : walkTime(r);
   const pa = placeOf(a), pb = placeOf(b);
@@ -685,9 +690,7 @@ function pickRoom(name) {
   from.value = name;
   to.value = "";
   Object.assign(state, { route: null, start: name, end: null, focus: null });
-  $("summary-empty").hidden = false;
-  $("summary-route").hidden = true;
-  $("directions").hidden = true;
+  showHome();
   say(`Starting from ${name}. Now tap or type where you're going.`);
   setFloor(state.floor);
 }
@@ -697,4 +700,207 @@ function showDataNote() {
   $("data-note").textContent =
     `Distances are walking steps: ${measured} of ${plan.edges.length} corridor segments were counted on foot by our team, the rest worked out from those counts. ` +
     `Stairs are about ${plan.meta.stairFlightEst} steps per floor. Times assume about ${STEPS_PER_MIN} steps a minute.`;
+}
+
+/* ---------- your section's classes ---------- */
+
+const SECTION_KEY = "kmap-section";
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const ENTRANCE = "A_ENTRY@0";  // where the first class of the day is walked from
+const AUTO_ROUTE_MINUTES = 10;  // open the way to the next class this close to its start
+let shownDay = null;
+let autoRouted = false;
+
+function mySection() {
+  let id = null;
+  try { id = localStorage.getItem(SECTION_KEY); } catch (e) {}
+  return timetable && timetable.sections[id] ? timetable.sections[id] : null;
+}
+
+function setupSection() {
+  if (!timetable) return;
+  const dialog = $("section-dialog"), options = $("section-options");
+  for (const id in timetable.sections) {
+    const s = timetable.sections[id], b = document.createElement("button");
+    b.value = id;
+    b.className = "section-option";
+    b.innerHTML = "<b></b><span></span>";
+    b.firstChild.textContent = s.name;
+    b.lastChild.textContent = s.semester;
+    options.appendChild(b);
+  }
+  dialog.addEventListener("close", () => {
+    try { localStorage.setItem(SECTION_KEY, dialog.returnValue || "none"); } catch (e) {}
+    shownDay = null;
+    if (!state.route) showHome();
+    updateChip();
+  });
+  $("section-chip").addEventListener("click", () => dialog.showModal());
+  $("back-classes").addEventListener("click", () => {
+    history.replaceState(null, "", location.pathname);
+    Object.assign(state, { route: null, start: null, end: null, focus: null });
+    $("from").value = $("to").value = "";
+    showHome();
+    setFloor(state.floor);
+  });
+  updateChip();
+  let asked = null;
+  try { asked = localStorage.getItem(SECTION_KEY); } catch (e) {}
+  if (asked == null && !location.hash) dialog.showModal();
+}
+
+function updateChip() {
+  const s = mySection(), chip = $("section-chip");
+  chip.hidden = !timetable;
+  chip.textContent = s ? s.name : "Pick section";
+}
+
+// The home state of the panel: your classes if a section is chosen, else the examples.
+function showHome() {
+  const s = mySection();
+  $("summary-route").hidden = true;
+  $("directions").hidden = true;
+  $("summary-empty").hidden = !!s;
+  $("classes").hidden = !s;
+  $("class-list").hidden = !s;
+  if (s) showClasses(s);
+}
+
+const minutes = hhmm => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3);
+const subjectName = (s, code) => s.subjects[code] || code;
+const walkMinutes = steps => (steps < 75 ? "under 1 min" : `about ${Math.round(steps / STEPS_PER_MIN)} min`);
+
+// A day's classes with back-to-back periods of the same subject and room joined into one
+// block (the 2-hour labs), and the walk to each block from the one before it.
+function dayPlan(s, day) {
+  const blocks = [];
+  for (const c of s.days[day] || []) {
+    const last = blocks[blocks.length - 1];
+    if (last && last.subject === c.subject && last.room === c.room && last.end === c.start) last.end = c.end;
+    else blocks.push({ ...c });
+  }
+  blocks.forEach((b, i) => {
+    b.from = i ? blocks[i - 1].room : ENTRANCE;
+    const r = b.from === b.room ? { found: true, steps: 0 } : route(b.from, b.room);
+    b.steps = r.found ? r.steps : null;
+    b.gapBefore = i ? minutes(b.start) - minutes(blocks[i - 1].end) : 0;  // free time before it
+  });
+  return blocks;
+}
+
+function showClasses(s) {
+  const now = new Date(), today = now.getDay();
+  if (shownDay == null) shownDay = s.days[today] ? today : +Object.keys(s.days)[0];
+  const isToday = shownDay === today;
+
+  // day chips
+  $("days").replaceChildren(...Object.keys(s.days).map(d => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(+d === shownDay));
+    b.setAttribute("aria-label", DAY_NAMES[d]);
+    b.textContent = DAY_NAMES[d].slice(0, 3);
+    if (+d === today) b.classList.add("today");
+    b.addEventListener("click", () => { shownDay = +d; showClasses(s); });
+    return b;
+  }));
+
+  const plan = dayPlan(s, shownDay);
+  const total = plan.reduce((sum, b) => sum + (b.steps || 0), 0);
+  $("classes-title").textContent = isToday ? "Your classes today" : `Your classes on ${DAY_NAMES[shownDay]}`;
+  $("day-walk").textContent = plan.length ? `About ${total} steps of walking between classes, ${walkMinutes(total).replace("about ", "")} in all.` : "";
+
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const current = isToday ? plan.findIndex(b => minutes(b.start) <= nowMin && nowMin < minutes(b.end)) : -1;
+  const next = isToday ? plan.findIndex(b => minutes(b.start) > nowMin) : -1;
+  showNextCard(s, plan, isToday, today, current, next);
+  showDay(s, plan, current, next);
+
+  // Opening K Map just before a class goes straight to the way there (once per visit).
+  if (isToday && next >= 0 && !autoRouted && !location.hash && minutes(plan[next].start) - nowMin <= AUTO_ROUTE_MINUTES && plan[next].steps) {
+    autoRouted = true;
+    goTo(plan[next]);
+    say(`${plan[next].subject} starts at ${plan[next].start}. Here's the way to ${plan[next].room}.`);
+  }
+}
+
+// The card for what matters right now.
+function showNextCard(s, plan, isToday, today, current, next) {
+  const card = $("next-class");
+  card.replaceChildren();
+  if (!isToday) return;
+  const add = (text, label, onClick) => {
+    const p = document.createElement("p");
+    p.className = "next-text";
+    p.textContent = text;
+    card.appendChild(p);
+    if (!label) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "next-go";
+    b.textContent = label;
+    b.addEventListener("click", onClick);
+    card.appendChild(b);
+  };
+  if (next >= 0) {
+    const n = plan[next];
+    const now = current >= 0 ? `Now ${plan[current].subject} in ${plan[current].room}. ` : "";
+    const label = n.steps ? `Show the way, ${n.steps} steps (${walkMinutes(n.steps)})` : "Same room, no need to move";
+    add(`${now}Next ${n.subject} at ${n.start} in ${n.room}.`, label, () => n.steps && goTo(n));
+    return;
+  }
+  if (current >= 0) return add(`Now ${plan[current].subject} in ${plan[current].room}, until ${plan[current].end}. It's the last class today.`);
+  // Today is over: point at the next day with classes.
+  for (let k = 1; k <= 7; k++) {
+    const d = (today + k) % 7, first = (s.days[d] || [])[0];
+    if (!first) continue;
+    const when = k === 1 ? "Tomorrow" : DAY_NAMES[d];
+    const start = plan.length ? "No more classes today." : "No classes today.";
+    add(`${start} ${when}, ${first.subject} at ${first.start} in ${first.room}.`, `See ${k === 1 ? "tomorrow" : DAY_NAMES[d]}'s classes`,
+        () => { shownDay = d; showClasses(s); openSheet(true); });
+    return;
+  }
+  add("No classes this week.");
+}
+
+// The full list of the chosen day: classes, with free periods between them.
+function showDay(s, plan, current, next) {
+  const rows = [];
+  plan.forEach((b, i) => {
+    if (b.gapBefore >= 30) {
+      const free = document.createElement("li");
+      free.className = "free";
+      free.textContent = `Free, ${plan[i - 1].end} to ${b.start}`;
+      rows.push(free);
+    }
+    const li = document.createElement("li");
+    if (i === current) li.classList.add("now");
+    if (i === next) li.classList.add("next");
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "class-row";
+    row.innerHTML = '<span class="when"><b></b><small></small></span><span class="what"><b></b><small></small></span><span class="walk"><b></b><small></small></span>';
+    const [when, what, walk] = row.children;
+    when.firstChild.textContent = b.start;
+    when.lastChild.textContent = b.end;
+    what.firstChild.textContent = `${b.subject} in ${b.room}`;
+    what.lastChild.textContent = subjectName(s, b.subject) + (minutes(b.end) - minutes(b.start) > 60 ? ", 2 periods" : "");
+    if (b.steps === 0) walk.firstChild.textContent = "same room";
+    else if (b.steps != null) {
+      walk.firstChild.textContent = `${b.steps} steps`;
+      walk.lastChild.textContent = walkMinutes(b.steps);
+    }
+    row.addEventListener("click", () => (b.steps ? goTo(b) : say(`${b.subject} is in the same room as the class before, ${b.room}.`)));
+    li.appendChild(row);
+    rows.push(li);
+  });
+  $("class-list").replaceChildren(...rows);
+}
+
+// Shows the route to a class from the class before it (or from the main entrance).
+function goTo(b) {
+  $("from").value = labelFor(b.from);
+  $("to").value = b.room;
+  findRoute();
 }

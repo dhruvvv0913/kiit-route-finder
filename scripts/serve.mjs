@@ -11,7 +11,7 @@ const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "we
 const port = Number(process.env.PORT) || 8080;
 const types = {
   ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript",
-  ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".wasm": "application/wasm",
+  ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".wasm": "application/wasm", ".png": "image/png", ".webmanifest": "application/manifest+json",
 };
 
 async function api(req, res) {

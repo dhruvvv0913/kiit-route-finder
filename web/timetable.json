@@ -1,0 +1,54 @@
+{
+  "note": "Class timetables per section, copied from the Plan Sync app (screenshots, 2026-10-28). Rooms are K Map room ids; the app shows them as C25-A214 etc. Days: 1 = Monday ... 5 = Friday.",
+  "sections": {
+    "CSE 8": {
+      "name": "CSE 8",
+      "semester": "Semester 5",
+      "subjects": {
+        "EE": "Engineering Economics",
+        "SE": "Software Engineering",
+        "CN": "Computer Networks",
+        "CNL": "Computer Networks Lab",
+        "DAA": "Design and Analysis of Algorithms",
+        "DAAL": "Algorithms Lab",
+        "DMDW21": "Data Mining and Data Warehousing",
+        "HPC11": "High Performance Computing"
+      },
+      "days": {
+        "1": [
+          { "start": "08:00", "end": "09:00", "subject": "EE", "room": "A214" },
+          { "start": "09:00", "end": "10:00", "subject": "SE", "room": "A214" },
+          { "start": "10:00", "end": "11:00", "subject": "CN", "room": "A214" },
+          { "start": "11:00", "end": "12:00", "subject": "DMDW21", "room": "B217" },
+          { "start": "12:00", "end": "13:00", "subject": "HPC11", "room": "B110" }
+        ],
+        "2": [
+          { "start": "08:00", "end": "09:00", "subject": "DAA", "room": "A213" },
+          { "start": "09:00", "end": "10:00", "subject": "CN", "room": "A213" },
+          { "start": "10:00", "end": "11:00", "subject": "EE", "room": "A213" },
+          { "start": "13:00", "end": "14:00", "subject": "HPC11", "room": "B001" }
+        ],
+        "3": [
+          { "start": "08:00", "end": "09:00", "subject": "SE", "room": "A010" },
+          { "start": "09:00", "end": "10:00", "subject": "CNL", "room": "A202" },
+          { "start": "10:00", "end": "11:00", "subject": "CNL", "room": "A202" },
+          { "start": "11:00", "end": "12:00", "subject": "CN", "room": "B219" },
+          { "start": "12:00", "end": "13:00", "subject": "HPC11", "room": "A315" }
+        ],
+        "4": [
+          { "start": "08:00", "end": "09:00", "subject": "DAA", "room": "A009" },
+          { "start": "09:00", "end": "10:00", "subject": "DAAL", "room": "A202" },
+          { "start": "10:00", "end": "11:00", "subject": "DAAL", "room": "A202" },
+          { "start": "11:00", "end": "12:00", "subject": "SE", "room": "B222" },
+          { "start": "12:00", "end": "13:00", "subject": "DMDW21", "room": "B115" }
+        ],
+        "5": [
+          { "start": "09:00", "end": "10:00", "subject": "SE", "room": "B122" },
+          { "start": "10:00", "end": "11:00", "subject": "EE", "room": "B122" },
+          { "start": "11:00", "end": "12:00", "subject": "DAA", "room": "B122" },
+          { "start": "13:00", "end": "14:00", "subject": "DMDW21", "room": "B001" }
+        ]
+      }
+    }
+  }
+}

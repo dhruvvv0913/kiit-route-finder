@@ -200,3 +200,47 @@ h1 { margin: 0; font: 700 clamp(2.1rem, 7vw, 3rem)/1.02 var(--f-sign); letter-sp
 .lede { margin: 8px 0 0; color: var(--ink-2); font-size: 18px; max-width: 60ch; }
 .hint { margin: 0; color: var(--ink-2); font-size: 14px; }
 .map-scroll { overflow-x: auto; }
+
+/* ---------- your section's classes ---------- */
+.section-chip { margin-left: auto; height: 30px; padding: 0 12px; border: 1px solid var(--frame); border-radius: 15px; background: var(--frame-soft); color: var(--ink); font-size: 14px; font-weight: 600; cursor: pointer; }
+.section-chip + .how { margin-left: 0; }
+.classes-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.days { display: flex; gap: 4px; }
+.days button { position: relative; min-width: 40px; height: 30px; padding: 0 6px; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); font-size: 13.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.days button.today::after { content: ""; position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--frame); }
+.days button[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--sheet); }
+.next-text { margin: 8px 0 0; font-size: 16px; }
+.next-go { display: block; width: 100%; margin: 8px 0 6px; height: 42px; border: 0; border-radius: 8px; background: var(--route); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }
+.class-list { list-style: none; margin: 6px 0 0; padding: 0; border-top: 1px solid var(--rule); }
+.class-list li + li { border-top: 1px solid var(--rule); }
+.class-row { width: 100%; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 4px; border: 0; background: none; text-align: left; cursor: pointer; }
+.class-row:hover { background: var(--canvas); }
+.class-row .when, .class-row .what { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.class-row .when b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.class-row .when small, .class-row .what small { font-size: 13px; color: var(--ink-2); }
+.class-row .what b { font-size: 16px; }
+.class-row .walk { font-size: 13.5px; color: var(--ink-2); white-space: nowrap; }
+.class-list li.now .class-row { box-shadow: inset 3px 0 0 var(--frame); }
+.class-list li.now .when b::after { content: " now"; color: var(--frame); font-size: 12px; font-weight: 600; }
+.class-list li.next .class-row { box-shadow: inset 3px 0 0 var(--route); }
+.back-classes { margin: 2px 0 6px; padding: 0; border: 0; background: none; color: var(--route); font-size: 15px; font-weight: 600; cursor: pointer; }
+
+.section-dialog { width: min(420px, calc(100vw - 32px)); padding: 22px 20px 18px; border: 0; border-radius: 16px; background: var(--sheet); color: var(--ink); box-shadow: 0 10px 40px rgb(0 0 0 / .3); }
+.section-dialog::backdrop { background: rgb(0 0 0 / .45); }
+.dialog-title { margin: 0; font: 700 28px/1.1 var(--f-sign); }
+.dialog-sub { margin: 6px 0 0; font-size: 15px; color: var(--ink-2); }
+.section-options { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.section-option { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 14px 16px; border: 1.5px solid var(--frame); border-radius: 12px; background: var(--frame-soft); font-size: 15px; cursor: pointer; }
+.section-option b { font: 700 24px var(--f-sign); }
+.section-option span { color: var(--ink-2); }
+.dialog-skip { margin-top: 14px; padding: 0; border: 0; background: none; color: var(--route); font-size: 15px; font-weight: 600; cursor: pointer; }
+.day-walk { order: 3; width: 100%; margin: 0; font-size: 14px; color: var(--ink-2); }
+.class-row .walk { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.class-row .walk b { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.class-row .walk small { font-size: 12.5px; color: var(--ink-2); }
+.class-list li.free { padding: 8px 4px 8px 68px; font-size: 14px; color: var(--ink-2); background: repeating-linear-gradient(-45deg, transparent 0 6px, var(--canvas) 6px 12px); }
+@media (max-width: 380px) {
+  .class-row { grid-template-columns: 46px minmax(0, 1fr) auto; gap: 8px; }
+  .class-list li.free { padding-left: 58px; }
+  .days button { min-width: 36px; }
+}
