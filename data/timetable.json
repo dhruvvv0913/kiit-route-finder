@@ -14,6 +14,14 @@
         "DMDW21": "Data Mining and Data Warehousing",
         "HPC11": "High Performance Computing"
       },
+      "teachers": {
+        "EE": "Mamita Dash",
+        "DAA": "Vijay Kumar Meena",
+        "SE": "Dr. Banchhanidhi Dash",
+        "CN": "Dr. Bhaswati Sahoo",
+        "CNL": "Dr. Bhaswati Sahoo",
+        "DAAL": "Vijay Kumar Meena"
+      },
       "days": {
         "1": [
           { "start": "08:00", "end": "09:00", "subject": "EE", "room": "A214" },

@@ -847,7 +847,8 @@ function showNextCard(s, plan, isToday, today, current, next) {
     const n = plan[next];
     const now = current >= 0 ? `Now ${plan[current].subject} in ${plan[current].room}. ` : "";
     const label = n.steps ? `Show the way, ${n.steps} steps (${walkMinutes(n.steps)})` : "Same room, no need to move";
-    add(`${now}Next ${n.subject} at ${n.start} in ${n.room}.`, label, () => n.steps && goTo(n));
+    const who = (s.teachers || {})[n.subject];
+    add(`${now}Next ${n.subject}${who ? ` with ${who}` : ""} at ${n.start} in ${n.room}.`, label, () => n.steps && goTo(n));
     return;
   }
   if (current >= 0) return add(`Now ${plan[current].subject} in ${plan[current].room}, until ${plan[current].end}. It's the last class today.`);
@@ -885,7 +886,8 @@ function showDay(s, plan, current, next) {
     when.firstChild.textContent = b.start;
     when.lastChild.textContent = b.end;
     what.firstChild.textContent = `${b.subject} in ${b.room}`;
-    what.lastChild.textContent = subjectName(s, b.subject) + (minutes(b.end) - minutes(b.start) > 60 ? ", 2 periods" : "");
+    const teacher = (s.teachers || {})[b.subject];
+    what.lastChild.textContent = subjectName(s, b.subject) + (teacher ? `, ${teacher}` : "") + (minutes(b.end) - minutes(b.start) > 60 ? ", 2 periods" : "");
     if (b.steps === 0) walk.firstChild.textContent = "same room";
     else if (b.steps != null) {
       walk.firstChild.textContent = `${b.steps} steps`;
