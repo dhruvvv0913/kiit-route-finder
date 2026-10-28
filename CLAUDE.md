@@ -111,6 +111,17 @@ The user asked for a design that doesn't look AI-generated. It follows Anthropic
   - monospace data labels
   - identical rounded cards with the same shadow (only floating map controls get `--lift`)
   - numbered section headings
+- **Phone map controls:** the floor picker hangs under the search panel (`--panel-h`), and the zoom row (+ − fit) sits just above the bottom sheet (`--sheet-h`). "Continue on the … floor" sits above the zoom row. Both hide while the sheet is open (`.stage.sheet-open`). `openArea()` reserves room for the row and the button.
+- **Web Interface Guidelines (Vercel):** `/web-design-guidelines` was run on 2026-10-28 and its findings were fixed:
+  - a hidden `<h1>` and a skip link
+  - `aria-hidden` on icons, and `aria-live` on the route summary
+  - arrow keys on the day and floor tabs
+  - hover/pressed states on every control, plus `touch-action: manipulation`
+  - curly quotes and apostrophes (’ “ ”) in all user-facing text
+  - spellcheck off on the room inputs
+
+  Exception: buttons and headings stay in sentence case, not Title Case, on purpose; Title Case is a generated-design tell.
+- **Design skills installed for this user:** `design-taste-frontend` (Leonxlnx/taste-skill) and `web-design-guidelines` (vercel-labs). The installer's leftover `.agents/` and `skills-lock.json` in the repo are git-ignored.
 - **Test phone widths** with a temporary `web/_phones.html` holding 360–390px iframes, screenshotted with headless Chrome (`--blink-settings=preferredColorScheme=1` for light mode). Headless windows can't go below ~500px. Delete the file afterwards.
 
 ## `data/floor-graph.json` details

@@ -48,6 +48,9 @@ a { color: var(--route); }
 :focus-visible { outline: 2.5px solid var(--route); outline-offset: 2px; }
 svg use { pointer-events: none; }
 [hidden] { display: none !important; }
+button, a, input, summary { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.skip { position: absolute; z-index: 10; left: 10px; top: -60px; padding: 10px 14px; border-radius: 8px; background: var(--ink); color: var(--sheet); font-weight: 600; text-decoration: none; }
+.skip:focus-visible { top: max(10px, env(safe-area-inset-top)); }
 .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* ---------- brand ---------- */
@@ -75,7 +78,7 @@ svg use { pointer-events: none; }
 .rail-line { flex: 1; width: 0; border-left: 2px dotted var(--ink-2); margin: 3px 0; }
 .rail-end { width: 12px; height: 12px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--end); }
 .search input { grid-column: 2; height: 44px; width: 100%; padding: 0 12px; border: 1px solid transparent; border-radius: 8px; background: var(--canvas); font-size: 17px; }
-.search input:focus { outline: none; border-color: var(--route); background: var(--sheet); }
+.search input:focus { outline: none; border-color: var(--route); background: var(--sheet); box-shadow: 0 0 0 3px var(--route-soft); }
 .search input::placeholder { color: var(--ink-2); }
 #from { grid-row: 1; }
 #to { grid-row: 2; }
@@ -128,18 +131,17 @@ svg use { pointer-events: none; }
 
 /* map controls */
 .floor-name { display: none; }
-.floors { position: absolute; z-index: 1; right: 10px; top: 46%; transform: translateY(-50%); display: flex; flex-direction: column-reverse; background: var(--sheet); border-radius: 10px; box-shadow: var(--lift); overflow: hidden; }
+.floors { position: absolute; z-index: 1; right: 10px; top: calc(var(--panel-h, 210px) + 12px); display: flex; flex-direction: column-reverse; background: var(--sheet); border-radius: 10px; box-shadow: var(--lift); overflow: hidden; }
 .floors button { position: relative; width: 44px; height: 42px; border: 0; background: none; font: 700 19px var(--f-sign); color: var(--ink-2); cursor: pointer; }
 .floors button + button { border-bottom: 1px solid var(--rule); }
 .floors button[aria-selected="true"] { background: var(--ink); color: var(--sheet); }
 .floors button.on-route:not([aria-selected="true"]) { color: var(--route); }
 .floors button.on-route::after { content: ""; position: absolute; left: 5px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: var(--route); }
-.zoom { position: absolute; z-index: 1; right: 10px; top: calc(46% + 110px); display: flex; flex-direction: column; background: var(--sheet); border-radius: 10px; box-shadow: var(--lift); overflow: hidden; }
+.zoom { position: absolute; z-index: 1; right: 10px; bottom: calc(var(--sheet-h, 120px) + 12px); display: flex; flex-direction: row; background: var(--sheet); border-radius: 10px; box-shadow: var(--lift); overflow: hidden; }
 .zoom button { width: 44px; height: 42px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; color: var(--ink); }
-.zoom button + button { border-top: 1px solid var(--rule); }
+.zoom button + button { border-left: 1px solid var(--rule); }
 .zoom svg { width: 20px; height: 20px; }
-#zoom-in, #zoom-out { display: none; }
-.continue { position: absolute; z-index: 1; left: 50%; bottom: calc(var(--sheet-h, 120px) + 14px); transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 0; border-radius: 20px; background: var(--route); color: #fff; font-weight: 600; font-size: 15px; box-shadow: var(--lift); cursor: pointer; white-space: nowrap; }
+.continue { position: absolute; z-index: 1; left: 50%; bottom: calc(var(--sheet-h, 120px) + 64px); transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 0; border-radius: 20px; background: var(--route); color: #fff; font-weight: 600; font-size: 15px; box-shadow: var(--lift); cursor: pointer; white-space: nowrap; }
 .continue svg { width: 18px; height: 18px; }
 
 /* ---------- laptops ---------- */
@@ -161,7 +163,9 @@ svg use { pointer-events: none; }
   .sheet-body, .sheet.open .sheet-body { max-height: none; overflow: visible; }
   .floor-name { display: block; position: absolute; z-index: 1; left: 16px; top: 16px; margin: 0; padding: 4px 12px 5px; border-radius: 10px; background: var(--sheet); box-shadow: var(--lift); font: 700 22px/1.1 var(--f-sign); letter-spacing: .01em; }
   .floors { top: 16px; right: 16px; transform: none; }
-  .zoom { top: auto; bottom: 18px; right: 16px; }
+  .zoom { top: auto; bottom: 18px; right: 16px; flex-direction: column; }
+  .zoom button + button { border-left: 0; border-top: 1px solid var(--rule); }
+  .continue { bottom: 22px; }
   #zoom-in, #zoom-out { display: grid; }
   .continue { bottom: 22px; }
 }
@@ -244,3 +248,14 @@ h1 { margin: 0; font: 700 clamp(2.1rem, 7vw, 3rem)/1.02 var(--f-sign); letter-sp
   .class-list li.free { padding-left: 58px; }
   .days button { min-width: 36px; }
 }
+
+/* hover and pressed states for every control (Web Interface Guidelines audit) */
+.section-chip:hover, .days button:hover:not([aria-selected="true"]) { border-color: var(--frame); }
+.how:hover, .back-classes:hover, .dialog-skip:hover { text-decoration: underline; }
+.floors button:hover:not([aria-selected="true"]), .zoom button:hover { background: var(--canvas); color: var(--ink); }
+.next-go:hover, .continue:hover { filter: brightness(1.1); }
+.section-option:hover { border-color: var(--ink); }
+button:active:not(:disabled) { filter: brightness(0.95); }
+
+/* phones: while the directions are open, the zoom row and "Continue" step aside */
+@media (max-width: 899px) { .stage.sheet-open .zoom, .stage.sheet-open .continue { display: none; } }

@@ -16,6 +16,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="app-page">
+<a class="skip" href="#from">Skip to route search</a>
+<h1 class="sr">K Map: shortest walk between rooms in Block A and B</h1>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-start" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="i-straight" viewBox="0 0 24 24"><path d="M12 20V5M6.5 10.5 12 5l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -39,7 +41,7 @@
   <aside class="panel" id="panel">
     <div class="panel-top" id="panel-top">
       <header class="masthead">
-        <a class="brand" href="./" aria-label="K Map, start again"><span class="mark" aria-hidden="true">K</span><span class="wordmark">K Map</span></a>
+        <a class="brand" href="./" aria-label="K Map, start again"><span class="mark" aria-hidden="true">K</span><span class="wordmark" translate="no">K Map</span></a>
         <span class="place">Block A and B, School of Computer Engineering</span>
         <button type="button" class="section-chip" id="section-chip" hidden></button>
         <a class="how" href="how.html">How it works</a>
@@ -48,19 +50,19 @@
       <form id="route-form" class="search" autocomplete="off">
         <span class="rail" aria-hidden="true"><i class="rail-start"></i><i class="rail-line"></i><i class="rail-end"></i></span>
         <label class="sr" for="from">From</label>
-        <input id="from" name="from" list="places" placeholder="From, e.g. A017" enterkeyhint="next" required>
+        <input id="from" name="from" list="places" placeholder="From, e.g. A017" enterkeyhint="next" spellcheck="false" autocapitalize="characters" required>
         <label class="sr" for="to">To</label>
-        <input id="to" name="to" list="places" placeholder="To, e.g. B018" enterkeyhint="go">
-        <button type="button" class="swap" id="swap" aria-label="Swap start and destination"><svg><use href="#i-swap"/></svg></button>
+        <input id="to" name="to" list="places" placeholder="To, e.g. B018" enterkeyhint="go" spellcheck="false" autocapitalize="characters">
+        <button type="button" class="swap" id="swap" aria-label="Swap start and destination"><svg aria-hidden="true"><use href="#i-swap"/></svg></button>
         <button type="submit" class="go" id="go" disabled>Find route</button>
         <datalist id="places"></datalist>
       </form>
 
       <div class="near" role="group" aria-label="Nearest from your start">
-        <button type="button" data-near="gents"><svg><use href="#i-gents"/></svg>Gents toilet</button>
-        <button type="button" data-near="ladies"><svg><use href="#i-ladies"/></svg>Ladies toilet</button>
-        <button type="button" data-near="stairs"><svg><use href="#i-stairs"/></svg>Stairs</button>
-        <button type="button" data-near="entrance"><svg><use href="#i-door"/></svg>Way out</button>
+        <button type="button" data-near="gents"><svg aria-hidden="true"><use href="#i-gents"/></svg>Gents toilet</button>
+        <button type="button" data-near="ladies"><svg aria-hidden="true"><use href="#i-ladies"/></svg>Ladies toilet</button>
+        <button type="button" data-near="stairs"><svg aria-hidden="true"><use href="#i-stairs"/></svg>Stairs</button>
+        <button type="button" data-near="entrance"><svg aria-hidden="true"><use href="#i-door"/></svg>Way out</button>
       </div>
       <p id="message" class="message" role="status">Loading the floor plan…</p>
     </div>
@@ -84,7 +86,7 @@
           <a href="#A101-B322">A101 to B322</a>
         </div>
       </div>
-      <div id="summary-route" class="summary" hidden>
+      <div id="summary-route" class="summary" aria-live="polite" hidden>
         <p class="total"><span id="total"></span> steps</p>
         <p class="time" id="time"></p>
         <p class="trip" id="trip"></p>
@@ -99,13 +101,13 @@
   </aside>
 
   <main class="stage" id="map-frame">
-    <svg id="map" viewBox="160 132 890 680" role="img" aria-label="Floor plan of Block A and B"></svg>
+    <svg id="map" viewBox="160 132 890 680" translate="no" role="img" aria-label="Floor plan of Block A and B"></svg>
     <p class="floor-name" id="map-title">Ground floor</p>
     <div class="floors" id="floor-tabs" role="tablist" aria-label="Floor"></div>
     <div class="zoom">
-      <button type="button" id="zoom-in" aria-label="Zoom in"><svg><use href="#i-plus"/></svg></button>
-      <button type="button" id="zoom-out" aria-label="Zoom out"><svg><use href="#i-minus"/></svg></button>
-      <button type="button" id="zoom-fit" aria-label="Show the whole route"><svg><use href="#i-fit"/></svg></button>
+      <button type="button" id="zoom-in" aria-label="Zoom in"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+      <button type="button" id="zoom-out" aria-label="Zoom out"><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+      <button type="button" id="zoom-fit" aria-label="Show the whole route"><svg aria-hidden="true"><use href="#i-fit"/></svg></button>
     </div>
     <button type="button" class="continue" id="continue" hidden></button>
   </main>
@@ -116,7 +118,7 @@
     <p class="dialog-sub">K Map shows your timetable and the way to each class. It remembers your choice on this phone.</p>
     <div class="section-options" id="section-options"></div>
     <p class="dialog-sub">Only CSE 8 is available for now.</p>
-    <button value="none" class="dialog-skip">I'm not in a listed section</button>
+    <button value="none" class="dialog-skip">I’m not in a listed section</button>
   </form>
 </dialog>
 <script src="router.js"></script>

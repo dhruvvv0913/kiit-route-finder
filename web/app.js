@@ -35,7 +35,7 @@ async function start() {
     const error = router.ccall("load_graph", "string", ["string"], [graphText]);
     if (error) throw new Error(error);
   } catch (err) {
-    say(`K Map didn't load (${err.message}). Refresh the page to try again.`, true);
+    say(`K Map didn’t load (${err.message}). Refresh the page to try again.`, true);
     return;
   }
   indexPlan();
@@ -158,12 +158,12 @@ function route(a, b) {
 function findRoute() {
   const fromText = $("from").value, toText = $("to").value;
   const a = resolve(fromText), b = resolve(toText);
-  if (!fromText.trim()) return fail("Type where you're starting from, e.g. A006.");
-  if (!a) return fail(`Couldn't find "${fromText.trim()}". Try a room number like A207.`);
-  if (!toText.trim()) return fail("Type where you're going, or pick a nearest place below.");
-  if (!b) return fail(`Couldn't find "${toText.trim()}". Try a room number like B212.`);
+  if (!fromText.trim()) return fail("Type where you’re starting from, e.g. A006.");
+  if (!a) return fail(`Couldn’t find “${fromText.trim()}”. Try a room number like A207.`);
+  if (!toText.trim()) return fail("Type where you’re going, or pick a nearest place below.");
+  if (!b) return fail(`Couldn’t find “${toText.trim()}”. Try a room number like B212.`);
   const r = route(a, b);
-  if (r.unknown) return fail(`"${r.unknown}" isn't on the map.`);
+  if (r.unknown) return fail(`“${r.unknown}” isn’t on the map.`);
   if (!r.found) return fail(`No route found between ${labelFor(a)} and ${labelFor(b)}.`);
   show(r, a, b);
 }
@@ -178,7 +178,7 @@ const NEAREST = {
 
 function findNearest(kind) {
   const fromText = $("from").value.trim(), a = resolve(fromText);
-  if (!a) return fail(fromText ? `Couldn't find "${fromText}".` : "Type where you are in From first, then pick what you need.");
+  if (!a) return fail(fromText ? `Couldn’t find “${fromText}”.` : "Type where you are in From first, then pick what you need.");
   const want = NEAREST[kind], startPlace = placeOf(a);
   let best = null;
   for (const f of floors())
@@ -208,7 +208,7 @@ function show(r, a, b) {
   $("summary-route").hidden = false;
   $("back-classes").hidden = !mySection();
   $("total").textContent = r.steps;
-  $("time").textContent = r.steps === 0 ? "You're already there" : walkTime(r);
+  $("time").textContent = r.steps === 0 ? "You’re already there" : walkTime(r);
   const pa = placeOf(a), pb = placeOf(b);
   const bold = text => { const el = document.createElement("b"); el.textContent = text; return el; };
   $("trip").replaceChildren(bold(labelFor(a)), " to ", bold(labelFor(b)),
@@ -220,7 +220,7 @@ function show(r, a, b) {
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute("aria-pressed", "false");
-    button.innerHTML = `<span class="ico ${item.icon}"><svg><use href="#i-${item.icon}"/></svg></span><span></span>`;
+    button.innerHTML = `<span class="ico ${item.icon}"><svg aria-hidden="true"><use href="#i-${item.icon}"/></svg></span><span></span>`;
     button.lastChild.textContent = item.text;
     button.addEventListener("click", () => focusStep(item, button));
     li.appendChild(button);
@@ -335,7 +335,7 @@ function directions(r) {
     const side = turn(hops[n - 3].arr, lastHop.dep);
     text = `Walk ${walk} steps. ${last.label} is ${side === "left" || side === "right" ? "on your " + side : "ahead of you"}.`;
   } else {
-    text = walk ? `Walk ${walk} steps to ${last.label}.` : `You've arrived at ${last.label}.`;
+    text = walk ? `Walk ${walk} steps to ${last.label}.` : `You’ve arrived at ${last.label}.`;
   }
   out.push({ icon: "arrive", text, from: since, to: n - 1 });
   return out;
@@ -449,7 +449,7 @@ function setFloor(f, { fit = false, animate = false } = {}) {
   const cont = $("continue");
   cont.hidden = next == null;
   if (next != null) {
-    cont.innerHTML = `<svg><use href="#i-${next > f ? "up" : "down"}"/></svg>`;
+    cont.innerHTML = `<svg aria-hidden="true"><use href="#i-${next > f ? "up" : "down"}"/></svg>`;
     cont.append(`Continue on the ${FLOOR_NAMES[next]} floor`);
     cont.onclick = () => setFloor(next, { fit: true, animate: true });
   }
@@ -542,7 +542,8 @@ function openArea() {
   if (isPhone()) {
     area.top = Math.max(area.top, $("panel-top").getBoundingClientRect().bottom - r.top + 8);
     area.bottom = Math.max(area.bottom, r.bottom - $("sheet").getBoundingClientRect().top + 8);
-    if (!$("continue").hidden) area.bottom += 54;  // room for "Continue on the … floor"
+    area.bottom += 52;  // the zoom row
+    if (!$("continue").hidden) area.bottom += 50;  // room for "Continue on the … floor"
   } else {
     area.top = 56;
   }
@@ -580,11 +581,11 @@ function toMap(clientX, clientY) {
 
 function bindMapGestures() {
   const pointers = new Map();
-  let moved = 0, pinch = null;
+  let moved = 0, pinch = null, dragRect = null;
   svg.addEventListener("pointerdown", e => {
     svg.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, [e.clientX, e.clientY]);
-    if (pointers.size === 1) moved = 0;
+    if (pointers.size === 1) { moved = 0; dragRect = null; }
     if (pointers.size === 2) {
       const [p, q] = [...pointers.values()];
       pinch = { d: Math.hypot(p[0] - q[0], p[1] - q[1]), w: view.w };
@@ -595,7 +596,7 @@ function bindMapGestures() {
     const [px, py] = pointers.get(e.pointerId);
     pointers.set(e.pointerId, [e.clientX, e.clientY]);
     if (pointers.size === 1) {
-      const r = svg.getBoundingClientRect();
+      const r = dragRect || (dragRect = svg.getBoundingClientRect());
       view.x -= ((e.clientX - px) / r.width) * view.w;
       view.y -= ((e.clientY - py) / r.height) * view.h;
       moved += Math.abs(e.clientX - px) + Math.abs(e.clientY - py);
@@ -655,6 +656,7 @@ const isPhone = () => window.matchMedia("(max-width: 899px)").matches;
 
 function openSheet(open) {
   $("sheet").classList.toggle("open", open);
+  $("map-frame").classList.toggle("sheet-open", open);
   $("handle").setAttribute("aria-expanded", String(open));
 }
 
@@ -666,6 +668,7 @@ function bindEvents() {
   for (const id of ["from", "to"])
     $(id).addEventListener("change", () => { if (resolve($("from").value) && resolve($("to").value)) findRoute(); });
   new ResizeObserver(() => $("map-frame").style.setProperty("--sheet-h", $("sheet").offsetHeight + "px")).observe($("sheet"));
+  new ResizeObserver(() => $("map-frame").style.setProperty("--panel-h", $("panel-top").getBoundingClientRect().bottom + "px")).observe($("panel-top"));
   $("route-form").addEventListener("submit", ev => {
     ev.preventDefault();
     findRoute();
@@ -691,7 +694,7 @@ function pickRoom(name) {
   to.value = "";
   Object.assign(state, { route: null, start: name, end: null, focus: null });
   showHome();
-  say(`Starting from ${name}. Now tap or type where you're going.`);
+  say(`Starting from ${name}. Now tap or type where you’re going.`);
   setFloor(state.floor);
 }
 
@@ -821,7 +824,7 @@ function showClasses(s) {
   if (isToday && next >= 0 && !autoRouted && !location.hash && minutes(plan[next].start) - nowMin <= AUTO_ROUTE_MINUTES && plan[next].steps) {
     autoRouted = true;
     goTo(plan[next]);
-    say(`${plan[next].subject} starts at ${plan[next].start}. Here's the way to ${plan[next].room}.`);
+    say(`${plan[next].subject} starts at ${plan[next].start}. Here’s the way to ${plan[next].room}.`);
   }
 }
 
@@ -851,14 +854,14 @@ function showNextCard(s, plan, isToday, today, current, next) {
     add(`${now}Next ${n.subject}${who ? ` with ${who}` : ""} at ${n.start} in ${n.room}.`, label, () => n.steps && goTo(n));
     return;
   }
-  if (current >= 0) return add(`Now ${plan[current].subject} in ${plan[current].room}, until ${plan[current].end}. It's the last class today.`);
+  if (current >= 0) return add(`Now ${plan[current].subject} in ${plan[current].room}, until ${plan[current].end}. It’s the last class today.`);
   // Today is over: point at the next day with classes.
   for (let k = 1; k <= 7; k++) {
     const d = (today + k) % 7, first = (s.days[d] || [])[0];
     if (!first) continue;
     const when = k === 1 ? "Tomorrow" : DAY_NAMES[d];
     const start = plan.length ? "No more classes today." : "No classes today.";
-    add(`${start} ${when}, ${first.subject} at ${first.start} in ${first.room}.`, `See ${k === 1 ? "tomorrow" : DAY_NAMES[d]}'s classes`,
+    add(`${start} ${when}, ${first.subject} at ${first.start} in ${first.room}.`, `See ${k === 1 ? "tomorrow" : DAY_NAMES[d]}’s classes`,
         () => { shownDay = d; showClasses(s); openSheet(true); });
     return;
   }
@@ -906,3 +909,24 @@ function goTo(b) {
   $("to").value = b.room;
   findRoute();
 }
+
+/* ---------- arrow keys on the day and floor tabs ---------- */
+
+function arrowKeysOn(list) {
+  list.addEventListener("keydown", e => {
+    const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    if (!(e.key in keys)) return;
+    const tabs = [...list.querySelectorAll('[role="tab"]')];
+    const i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    e.preventDefault();
+    // the floor picker is drawn bottom-up (G at the bottom), so up means the next floor
+    const step = list.id === "floor-tabs" && (e.key === "ArrowUp" || e.key === "ArrowDown") ? -keys[e.key] : keys[e.key];
+    const next = tabs[(i + step + tabs.length) % tabs.length];
+    next.click();
+    const again = list.querySelector(`[role="tab"][aria-label="${next.getAttribute("aria-label")}"]`);
+    (again || next).focus();
+  });
+}
+arrowKeysOn($("days"));
+arrowKeysOn($("floor-tabs"));

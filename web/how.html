@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>How K Map works</title>
-<meta name="description" content="How K Map finds the shortest walk: the building as a graph, and Dijkstra's algorithm step by step.">
+<meta name="description" content="How K Map finds the shortest walk: the building as a graph, and Dijkstra’s algorithm step by step.">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f8a3d'/%3E%3Cpath d='M10 7v18M10 17l9-10M13.5 13.5 21 25' stroke='white' stroke-width='3.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,7 +64,7 @@
 <main class="wrap doc">
   <header>
     <h1>From corridors to the shortest walk</h1>
-    <p class="lede">K Map turns Block A &amp; B into a graph and uses Dijkstra's algorithm, written in C++, to find the walk with the fewest steps between any two places.</p>
+    <p class="lede">K Map turns Block A &amp; B into a graph and uses Dijkstra’s algorithm, written in C++, to find the walk with the fewest steps between any two places.</p>
   </header>
 
   <section>
@@ -102,15 +102,15 @@
   </section>
 
   <section>
-    <h2>Dijkstra's algorithm, in four steps</h2>
-    <p>Each place gets a number: the fewest steps found so far from the start. The start is 0, everything else begins as "not reached" (∞). Then repeat:</p>
+    <h2>Dijkstra’s algorithm, in four steps</h2>
+    <p>Each place gets a number: the fewest steps found so far from the start. The start is 0, everything else begins as “not reached” (∞). Then repeat:</p>
     <ol>
-      <li><b>Pick</b> the closest place that isn't finished yet.</li>
+      <li><b>Pick</b> the closest place that isn’t finished yet.</li>
       <li><b>Finish it.</b> Nothing can reach it more cheaply now, because every other unfinished place is already at least as far away.</li>
       <li><b>Relax its neighbours:</b> if walking through it gives a neighbour a shorter total, write down the new total and remember where it came from.</li>
-      <li>When the destination is finished, <b>follow the "came from" notes backwards</b> to read off the route.</li>
+      <li>When the destination is finished, <b>follow the “came from” notes backwards</b> to read off the route.</li>
     </ol>
-    <p>This is the simple version: step 1 looks through every place, and step 3 looks along the place's whole row of the matrix, so each round costs up to V checks and the whole search is <b>O(V²)</b> for V places. With 412 places that's about 170,000 checks, which takes well under a millisecond.</p>
+    <p>This is the simple version: step 1 looks through every place, and step 3 looks along the place’s whole row of the matrix, so each round costs up to V checks and the whole search is <b>O(V²)</b> for V places. With 412 places that’s about 170,000 checks, which takes well under a millisecond.</p>
   </section>
 
   <section>
@@ -145,7 +145,7 @@
         </tbody>
       </table>
     </div>
-    <p>F is finished at <b>6 steps</b>. Following the notes back: F came from C, C from B, B from A, so the route is <b>A → B → C → F</b>. In round 3, F was 12 through E; round 5 found the cheaper way and replaced it. That replacement is the "relax" step.</p>
+    <p>F is finished at <b>6 steps</b>. Following the notes back: F came from C, C from B, B from A, so the route is <b>A → B → C → F</b>. In round 3, F was 12 through E; round 5 found the cheaper way and replaced it. That replacement is the “relax” step.</p>
   </section>
 
   <section>
